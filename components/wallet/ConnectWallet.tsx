@@ -10,22 +10,33 @@ import {
 } from "wagmi";
 import { injected } from "wagmi/connectors";
 
-import { arcTestnet } from "../../lib/wagmi";
+import { arcTestnet } from "@/lib/wagmi";
+
+import { Contact } from "@/types/contact";
+import {
+  createContact,
+  deleteContact,
+  getContacts,
+} from "@/lib/services/contacts";
 
 import ContactsPanel from "../contacts/ContactsPanel";
+import RecipientsPanel from "../recipients/RecipientsPanel";
 import NetworkBadge from "./NetworkBadge";
 import WalletAddress from "./WalletAddress";
 
 export default function ConnectWallet() {
   const [mounted, setMounted] = useState(false);
+  const [contacts, setContacts] = useState<Contact[]>([]);
 
   useEffect(() => {
     setMounted(true);
+    setContacts(getContacts());
   }, []);
 
   const { address, chainId, isConnected } = useAccount();
 
-  const { connect, isPending: isConnecting } = useConnect();
+  const { connect, isPending: isConnecting } =
+    useConnect();
 
   const { disconnect } = useDisconnect();
 
@@ -33,6 +44,27 @@ export default function ConnectWallet() {
     switchChain,
     isPending: isSwitching,
   } = useSwitchChain();
+
+  function handleCreate(
+    name: string,
+    address: `0x${string}`
+  ) {
+    createContact(name, address);
+    setContacts(getContacts());
+  }
+
+  function handleDelete(contact: Contact) {
+    const confirmed = window.confirm(
+      `Delete "${contact.name}" from your contacts?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    deleteContact(contact.id);
+    setContacts(getContacts());
+  }
 
   if (!mounted) {
     return null;
@@ -45,12 +77,15 @@ export default function ConnectWallet() {
         disabled={isConnecting}
         className="rounded-lg bg-white px-6 py-3 font-semibold text-black hover:bg-gray-200"
       >
-        {isConnecting ? "Connecting..." : "Connect Wallet"}
+        {isConnecting
+          ? "Connecting..."
+          : "Connect Wallet"}
       </button>
     );
   }
 
-  const isCorrectNetwork = chainId === arcTestnet.id;
+  const isCorrectNetwork =
+    chainId === arcTestnet.id;
 
   return (
     <div className="flex w-full max-w-2xl flex-col items-center gap-4">
@@ -88,7 +123,19 @@ export default function ConnectWallet() {
         Disconnect
       </button>
 
-      {isCorrectNetwork && <ContactsPanel />}
+      {isCorrectNetwork && (
+        <>
+          <ContactsPanel
+            contacts={contacts}
+            onCreate={handleCreate}
+            onDelete={handleDelete}
+          />
+
+          <RecipientsPanel
+            contacts={contacts}
+          />
+        </>
+      )}
     </div>
   );
 }

@@ -1,45 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 import { Contact } from "@/types/contact";
-import {
-  createContact,
-  deleteContact,
-  getContacts,
-} from "@/lib/services/contacts";
 
 import ContactForm from "./ContactForm";
 import ContactList from "./ContactList";
 
-export default function ContactsPanel() {
-  const [contacts, setContacts] = useState<Contact[]>([]);
-
-  useEffect(() => {
-    setContacts(getContacts());
-  }, []);
-
-  function handleCreate(
+interface ContactsPanelProps {
+  contacts: Contact[];
+  onCreate: (
     name: string,
     address: `0x${string}`
-  ) {
-    createContact(name, address);
-    setContacts(getContacts());
-  }
+  ) => void;
+  onDelete: (contact: Contact) => void;
+}
 
-  function handleDelete(contact: Contact) {
-    const confirmed = window.confirm(
-      `Delete "${contact.name}" from your contacts?`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    deleteContact(contact.id);
-    setContacts(getContacts());
-  }
-
+export default function ContactsPanel({
+  contacts,
+  onCreate,
+  onDelete,
+}: ContactsPanelProps) {
   return (
     <section className="mt-10 w-full max-w-2xl rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
       <div className="mb-6">
@@ -52,12 +31,12 @@ export default function ContactsPanel() {
         </p>
       </div>
 
-      <ContactForm onCreate={handleCreate} />
+      <ContactForm onCreate={onCreate} />
 
       <div className="mt-8">
         <ContactList
           contacts={contacts}
-          onDelete={handleDelete}
+          onDelete={onDelete}
         />
       </div>
     </section>
