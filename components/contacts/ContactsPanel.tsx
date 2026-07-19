@@ -28,6 +28,14 @@ export default function ContactsPanel() {
   }
 
   function handleDelete(contact: Contact) {
+    const confirmed = window.confirm(
+      `Delete "${contact.name}" from your contacts?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     deleteContact(contact.id);
     setContacts(getContacts());
   }

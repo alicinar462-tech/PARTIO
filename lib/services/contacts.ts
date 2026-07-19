@@ -1,6 +1,6 @@
 import { Contact } from "@/types/contact";
 
-const STORAGE_KEY = "arcsplit.contacts";
+const STORAGE_KEY = "arcsplit_contacts";
 
 export function getContacts(): Contact[] {
   if (typeof window === "undefined") {
@@ -20,46 +20,77 @@ export function getContacts(): Contact[] {
   }
 }
 
-export function saveContacts(contacts: Contact[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(contacts));
+function saveContacts(contacts: Contact[]) {
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(contacts)
+  );
 }
 
 export function createContact(
   name: string,
   address: `0x${string}`
 ): Contact {
-  const newContact: Contact = {
+  const contacts = getContacts();
+
+  const normalizedName = name.trim();
+  const normalizedAddress =
+    address.toLowerCase() as `0x${string}`;
+
+  if (
+    contacts.some(
+      (contact) =>
+        contact.name.toLowerCase() ===
+        normalizedName.toLowerCase()
+    )
+  ) {
+    throw new Error("A contact with this name already exists.");
+  }
+
+  if (
+    contacts.some(
+      (contact) =>
+        contact.address.toLowerCase() ===
+        normalizedAddress
+    )
+  ) {
+    throw new Error("This wallet address already exists.");
+  }
+
+  const contact: Contact = {
     id: crypto.randomUUID(),
-    name: name.trim(),
-    address,
+    name: normalizedName,
+    address: normalizedAddress,
     createdAt: Date.now(),
   };
 
+  contacts.push(contact);
+
+  saveContacts(contacts);
+
+  return contact;
+}
+
+export function updateContact(contact: Contact) {
   const contacts = getContacts();
 
-  contacts.push(newContact);
-
-  saveContacts(contacts);
-
-  return newContact;
-}
-
-export function updateContact(updatedContact: Contact): void {
-  const contacts = getContacts().map((contact) =>
-    contact.id === updatedContact.id ? updatedContact : contact
+  const updated = contacts.map((item) =>
+    item.id === contact.id ? contact : item
   );
 
-  saveContacts(contacts);
+  saveContacts(updated);
 }
 
-export function deleteContact(id: string): void {
-  const contacts = getContacts().filter(
-    (contact) => contact.id !== id
+export function deleteContact(id: string) {
+  const contacts = getContacts();
+
+  saveContacts(
+    contacts.filter((contact) => contact.id !== id)
   );
-
-  saveContacts(contacts);
 }
 
-export function getContactById(id: string): Contact | undefined {
-  return getContacts().find((contact) => contact.id === id);
+export function getContactById(id: string) {
+  return getContacts().find(
+    (contact) => contact.id === id
+  );
 }
