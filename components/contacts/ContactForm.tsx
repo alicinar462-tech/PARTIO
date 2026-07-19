@@ -14,29 +14,43 @@ export default function ContactForm({
 }: ContactFormProps) {
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
+  const [error, setError] = useState("");
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  function handleSubmit(
+    e: FormEvent<HTMLFormElement>
+  ) {
     e.preventDefault();
+
+    setError("");
 
     const trimmedName = name.trim();
     const trimmedAddress = address.trim();
 
     if (!trimmedName || !trimmedAddress) {
+      setError("Please fill in all fields.");
       return;
     }
 
     if (!/^0x[a-fA-F0-9]{40}$/.test(trimmedAddress)) {
-      alert("Please enter a valid wallet address.");
+      setError("Please enter a valid wallet address.");
       return;
     }
 
-    onCreate(
-      trimmedName,
-      trimmedAddress as `0x${string}`
-    );
+    try {
+      onCreate(
+        trimmedName,
+        trimmedAddress as `0x${string}`
+      );
 
-    setName("");
-    setAddress("");
+      setName("");
+      setAddress("");
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Something went wrong.");
+      }
+    }
   }
 
   return (
@@ -56,7 +70,9 @@ export default function ContactForm({
           id="contact-name"
           type="text"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) =>
+            setName(e.target.value)
+          }
           placeholder="Alice"
           className="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-3 text-white outline-none transition focus:border-blue-500"
         />
@@ -74,13 +90,21 @@ export default function ContactForm({
           id="contact-address"
           type="text"
           value={address}
-          onChange={(e) => setAddress(e.target.value)}
+          onChange={(e) =>
+            setAddress(e.target.value)
+          }
           placeholder="0x..."
           spellCheck={false}
           autoComplete="off"
           className="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-blue-500"
         />
       </div>
+
+      {error && (
+        <p className="text-sm text-red-400">
+          {error}
+        </p>
+      )}
 
       <button
         type="submit"
