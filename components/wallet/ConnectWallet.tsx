@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import {
   useAccount,
   useConnect,
@@ -10,10 +12,17 @@ import { injected } from "wagmi/connectors";
 
 import { arcTestnet } from "../../lib/wagmi";
 
+import ContactsPanel from "../contacts/ContactsPanel";
 import NetworkBadge from "./NetworkBadge";
 import WalletAddress from "./WalletAddress";
 
 export default function ConnectWallet() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const { address, chainId, isConnected } = useAccount();
 
   const { connect, isPending: isConnecting } = useConnect();
@@ -24,6 +33,10 @@ export default function ConnectWallet() {
     switchChain,
     isPending: isSwitching,
   } = useSwitchChain();
+
+  if (!mounted) {
+    return null;
+  }
 
   if (!isConnected) {
     return (
@@ -37,13 +50,11 @@ export default function ConnectWallet() {
     );
   }
 
-  const isCorrectNetwork =
-    chainId === arcTestnet.id;
+  const isCorrectNetwork = chainId === arcTestnet.id;
 
   return (
-    <div className="flex flex-col items-center gap-4">
-
-      <div className="text-green-500 font-semibold">
+    <div className="flex w-full max-w-2xl flex-col items-center gap-4">
+      <div className="font-semibold text-green-500">
         Wallet Connected
       </div>
 
@@ -76,6 +87,8 @@ export default function ConnectWallet() {
       >
         Disconnect
       </button>
+
+      {isCorrectNetwork && <ContactsPanel />}
     </div>
   );
 }
