@@ -56,48 +56,59 @@ export default function ContactForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4"
+      className="space-y-3"
     >
-      <div>
-        <label
-          htmlFor="contact-name"
-          className="mb-2 block text-sm font-medium text-neutral-300"
-        >
-          Name
-        </label>
+      <div className="grid gap-3 lg:grid-cols-[220px_1fr_auto]">
+        <div>
+          <label
+            htmlFor="contact-name"
+            className="mb-1 block text-xs font-medium text-neutral-400"
+          >
+            Name
+          </label>
 
-        <input
-          id="contact-name"
-          type="text"
-          value={name}
-          onChange={(e) =>
-            setName(e.target.value)
-          }
-          placeholder="Alice"
-          className="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-3 text-white outline-none transition focus:border-blue-500"
-        />
-      </div>
+          <input
+            id="contact-name"
+            type="text"
+            value={name}
+            onChange={(e) =>
+              setName(e.target.value)
+            }
+            placeholder="Alice"
+            className="h-10 w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 text-sm text-white outline-none transition focus:border-blue-500"
+          />
+        </div>
 
-      <div>
-        <label
-          htmlFor="contact-address"
-          className="mb-2 block text-sm font-medium text-neutral-300"
-        >
-          Wallet Address
-        </label>
+        <div>
+          <label
+            htmlFor="contact-address"
+            className="mb-1 block text-xs font-medium text-neutral-400"
+          >
+            Wallet Address
+          </label>
 
-        <input
-          id="contact-address"
-          type="text"
-          value={address}
-          onChange={(e) =>
-            setAddress(e.target.value)
-          }
-          placeholder="0x..."
-          spellCheck={false}
-          autoComplete="off"
-          className="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-blue-500"
-        />
+          <input
+            id="contact-address"
+            type="text"
+            value={address}
+            onChange={(e) =>
+              setAddress(e.target.value)
+            }
+            placeholder="0x..."
+            spellCheck={false}
+            autoComplete="off"
+            className="h-10 w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 font-mono text-sm text-white outline-none transition focus:border-blue-500"
+          />
+        </div>
+
+        <div className="flex items-end">
+          <button
+            type="submit"
+            className="h-10 w-full rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-500 lg:w-auto"
+          >
+            + Add
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -105,13 +116,6 @@ export default function ContactForm({
           {error}
         </p>
       )}
-
-      <button
-        type="submit"
-        className="rounded-lg bg-white px-5 py-3 font-semibold text-black transition hover:bg-neutral-200"
-      >
-        Add Contact
-      </button>
     </form>
   );
 }
