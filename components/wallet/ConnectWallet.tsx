@@ -27,6 +27,7 @@ import {
   updateRecipientAmount,
 } from "@/lib/services/recipients";
 
+import ContactForm from "../contacts/ContactForm";
 import ContactsPanel from "../contacts/ContactsPanel";
 import RecipientsPanel from "../recipients/RecipientsPanel";
 import NetworkBadge from "./NetworkBadge";
@@ -123,7 +124,6 @@ export default function ConnectWallet() {
   return (
     <div className="w-full space-y-8">
       {/* Wallet Card */}
-
       <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
         <div className="mb-4 text-lg font-semibold text-green-500">
           Wallet Connected
@@ -168,10 +168,28 @@ export default function ConnectWallet() {
 
       {isCorrectNetwork && (
         <>
+          {/* Add Contact */}
+          <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-white">
+                Add New Contact
+              </h2>
+
+              <p className="mt-1 text-sm text-neutral-400">
+                Save wallet addresses for future splits.
+              </p>
+            </div>
+
+            <ContactForm onCreate={handleCreate} />
+          </div>
+
+          {/* Panels */}
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <ContactsPanel
               contacts={contacts}
-              onCreate={handleCreate}
+              recipientIds={recipients.map(
+                (recipient) => recipient.id
+              )}
               onDelete={handleDelete}
               onAddRecipient={
                 handleAddRecipient
@@ -189,6 +207,7 @@ export default function ConnectWallet() {
             />
           </div>
 
+          {/* Summary */}
           <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
             <h2 className="mb-4 text-lg font-semibold">
               Summary
@@ -199,6 +218,7 @@ export default function ConnectWallet() {
                 <p className="text-neutral-400">
                   Recipients
                 </p>
+
                 <p className="text-2xl font-bold">
                   {recipients.length}
                 </p>
@@ -208,6 +228,7 @@ export default function ConnectWallet() {
                 <p className="text-neutral-400">
                   Total USDC
                 </p>
+
                 <p className="text-2xl font-bold">
                   Coming Soon
                 </p>

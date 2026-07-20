@@ -5,14 +5,14 @@ import { Contact } from "@/types/contact";
 
 interface ContactListProps {
   contacts: Contact[];
-  onEdit?: (contact: Contact) => void;
+  recipientIds: string[];
   onDelete?: (contact: Contact) => void;
   onAddRecipient?: (contact: Contact) => void;
 }
 
 export default function ContactList({
   contacts,
-  onEdit,
+  recipientIds,
   onDelete,
   onAddRecipient,
 }: ContactListProps) {
@@ -26,7 +26,7 @@ export default function ContactList({
         <ContactCard
           key={contact.id}
           contact={contact}
-          onEdit={onEdit}
+          isRecipient={recipientIds.includes(contact.id)}
           onDelete={onDelete}
           onAddRecipient={onAddRecipient}
         />

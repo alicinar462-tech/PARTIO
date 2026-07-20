@@ -2,13 +2,14 @@ import { Contact } from "@/types/contact";
 
 interface ContactCardProps {
   contact: Contact;
-  onEdit?: (contact: Contact) => void;
+  isRecipient?: boolean;
   onDelete?: (contact: Contact) => void;
   onAddRecipient?: (contact: Contact) => void;
 }
 
 export default function ContactCard({
   contact,
+  isRecipient = false,
   onDelete,
   onAddRecipient,
 }: ContactCardProps) {
@@ -34,14 +35,23 @@ export default function ContactCard({
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
-        <button
-          type="button"
-          title="Add recipient"
-          onClick={() => onAddRecipient?.(contact)}
-          className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white transition hover:bg-blue-500"
-        >
-          +
-        </button>
+        {isRecipient ? (
+          <div
+            title="Already added"
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-600 text-sm font-bold text-white"
+          >
+            ✓
+          </div>
+        ) : (
+          <button
+            type="button"
+            title="Add recipient"
+            onClick={() => onAddRecipient?.(contact)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white transition hover:bg-blue-500"
+          >
+            +
+          </button>
+        )}
 
         <button
           type="button"
