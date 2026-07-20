@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   useAccount,
@@ -99,6 +99,26 @@ export default function ConnectWallet() {
       updateRecipientAmount(current, id, amount)
     );
   }
+
+  const totalAmount = useMemo(() => {
+    return recipients.reduce((sum, recipient) => {
+      const value = Number(recipient.amount);
+
+      if (Number.isNaN(value)) {
+        return sum;
+      }
+
+      return sum + value;
+    }, 0);
+  }, [recipients]);
+
+  const hasValidAmounts = useMemo(() => {
+    return recipients.some((recipient) => {
+      const value = Number(recipient.amount);
+
+      return !Number.isNaN(value) && value > 0;
+    });
+  }, [recipients]);
 
   if (!mounted) return null;
 
@@ -230,14 +250,18 @@ export default function ConnectWallet() {
                 </p>
 
                 <p className="text-2xl font-bold">
-                  Coming Soon
+                  {totalAmount.toFixed(2)}
                 </p>
               </div>
 
               <div className="flex gap-3">
                 <button
-                  disabled
-                  className="rounded-lg bg-neutral-700 px-5 py-2 text-neutral-400"
+                  disabled={!hasValidAmounts}
+                  className={`rounded-lg px-5 py-2 font-medium transition ${
+                    hasValidAmounts
+                      ? "bg-green-600 text-white hover:bg-green-500"
+                      : "bg-neutral-700 text-neutral-400"
+                  }`}
                 >
                   Approve
                 </button>
