@@ -74,7 +74,7 @@ export default function ContactForm({
             onChange={(e) =>
               setName(e.target.value)
             }
-            placeholder="Alice"
+            placeholder="e.g. Alice"
             className="h-10 w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 text-sm text-white outline-none transition focus:border-blue-500"
           />
         </div>
@@ -94,7 +94,7 @@ export default function ContactForm({
             onChange={(e) =>
               setAddress(e.target.value)
             }
-            placeholder="0x..."
+            placeholder="0x1234..."
             spellCheck={false}
             autoComplete="off"
             className="h-10 w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 font-mono text-sm text-white outline-none transition focus:border-blue-500"

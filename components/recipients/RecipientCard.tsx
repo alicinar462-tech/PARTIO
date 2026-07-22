@@ -54,8 +54,9 @@ export default function RecipientCard({
         />
 
         <button
+          type="button"
           onClick={() => onRemove(recipient.id)}
-          title="Remove recipient"
+          title="Remove from partition"
           className="flex h-8 w-8 items-center justify-center rounded-lg text-red-400 transition hover:bg-red-500/10 hover:text-red-300"
         >
           🗑

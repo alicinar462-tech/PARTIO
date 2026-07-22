@@ -37,7 +37,7 @@ export default function ContactCard({
       <div className="flex shrink-0 items-center gap-2">
         {isRecipient ? (
           <div
-            title="Already added"
+            title="Recipient added"
             className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-600 text-sm font-bold text-white"
           >
             ✓
@@ -45,7 +45,7 @@ export default function ContactCard({
         ) : (
           <button
             type="button"
-            title="Add recipient"
+            title="Add to recipients"
             onClick={() => onAddRecipient?.(contact)}
             className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white transition hover:bg-blue-500"
           >
@@ -55,7 +55,7 @@ export default function ContactCard({
 
         <button
           type="button"
-          title="Delete contact"
+          title="Remove contact"
           onClick={() => onDelete?.(contact)}
           className="flex h-8 w-8 items-center justify-center rounded-lg text-sm text-red-400 transition hover:bg-red-500/10 hover:text-red-300"
         >

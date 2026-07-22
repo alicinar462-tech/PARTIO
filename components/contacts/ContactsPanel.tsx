@@ -44,14 +44,14 @@ export default function ContactsPanel({
         </h2>
 
         <p className="mt-1 text-xs text-neutral-400">
-          Your saved wallet addresses.
+          Select recipients from your saved wallet addresses.
         </p>
       </div>
 
       <div className="mb-4">
         <input
           type="text"
-          placeholder="Search..."
+          placeholder="Search contacts..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="h-10 w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 text-sm text-white placeholder:text-neutral-500 outline-none transition focus:border-blue-500"
@@ -69,7 +69,7 @@ export default function ContactsPanel({
 
       {filteredContacts.length === 0 && (
         <div className="py-8 text-center text-sm text-neutral-500">
-          No contacts found.
+          No matching contacts found.
         </div>
       )}
     </section>

@@ -49,14 +49,14 @@ export default function RecipientsPanel({
         </h2>
 
         <p className="mt-1 text-xs text-neutral-400">
-          Selected contacts and assigned amounts.
+          Configure your payment partition by assigning an amount to each recipient.
         </p>
       </div>
 
       <div className="mb-4">
         <input
           type="text"
-          placeholder="Search..."
+          placeholder="Search recipients..."
           value={search}
           onChange={(e) =>
             setSearch(e.target.value)
@@ -75,7 +75,7 @@ export default function RecipientsPanel({
 
       {filteredRecipients.length === 0 && (
         <div className="py-8 text-center text-sm text-neutral-500">
-          No recipients yet.
+          No recipients selected yet.
         </div>
       )}
     </section>

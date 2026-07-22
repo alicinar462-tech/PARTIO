@@ -3,8 +3,9 @@ import type { Metadata } from "next";
 import WalletProvider from "../providers/wallet";
 
 export const metadata: Metadata = {
-  title: "ArcSplit",
-  description: "One Click USDC Distribution on ARC",
+  title: "Partio",
+  description:
+    "One-Click Payment Partition on ARC. Split one payment into multiple destinations with a single transaction.",
 };
 
 export default function RootLayout({

@@ -10,7 +10,7 @@ export default function EmptyContacts() {
       </h2>
 
       <p className="mt-2 max-w-sm text-sm text-gray-500">
-        Add someone you'd like to pay again.
+        Add wallet addresses to build your recipient list.
         Your saved contacts will appear here.
       </p>
     </div>

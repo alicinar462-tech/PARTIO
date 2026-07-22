@@ -26,7 +26,7 @@ export default function RecipientList({
         </p>
 
         <p className="mt-2 text-sm text-neutral-500">
-          Choose one or more contacts to start splitting payments.
+          Choose one or more contacts to start building your payment partition.
         </p>
       </div>
     );

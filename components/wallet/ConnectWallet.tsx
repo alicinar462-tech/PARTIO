@@ -46,8 +46,7 @@ export default function ConnectWallet() {
 
   const { address, chainId, isConnected } = useAccount();
 
-  const { connect, isPending: isConnecting } =
-    useConnect();
+  const { connect, isPending: isConnecting } = useConnect();
 
   const { disconnect } = useDisconnect();
 
@@ -196,7 +195,7 @@ export default function ConnectWallet() {
               </h2>
 
               <p className="mt-1 text-sm text-neutral-400">
-                Save wallet addresses for future splits.
+                Save wallet addresses for future payment partitions.
               </p>
             </div>
 
@@ -211,19 +210,13 @@ export default function ConnectWallet() {
                 (recipient) => recipient.id
               )}
               onDelete={handleDelete}
-              onAddRecipient={
-                handleAddRecipient
-              }
+              onAddRecipient={handleAddRecipient}
             />
 
             <RecipientsPanel
               recipients={recipients}
-              onAmountChange={
-                handleAmountChange
-              }
-              onRemove={
-                handleRemoveRecipient
-              }
+              onAmountChange={handleAmountChange}
+              onRemove={handleRemoveRecipient}
             />
           </div>
 
@@ -270,7 +263,7 @@ export default function ConnectWallet() {
                   disabled
                   className="rounded-lg bg-blue-600 px-5 py-2 text-white opacity-50"
                 >
-                  Split
+                  Partition
                 </button>
               </div>
             </div>

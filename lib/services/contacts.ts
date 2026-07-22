@@ -1,6 +1,6 @@
 import { Contact } from "@/types/contact";
 
-const STORAGE_KEY = "arcsplit_contacts";
+const STORAGE_KEY = "partio_contacts";
 
 export function getContacts(): Contact[] {
   if (typeof window === "undefined") {

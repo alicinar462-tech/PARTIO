@@ -9,8 +9,10 @@ export default function WalletAddress({
 
   return (
     <div className="text-sm text-gray-400">
-      {address.slice(0, 6)}...
-      {address.slice(-4)}
+      <span className="mr-2 text-neutral-500">Wallet</span>
+      <span className="font-mono">
+        {address.slice(0, 6)}...{address.slice(-4)}
+      </span>
     </div>
   );
 }
