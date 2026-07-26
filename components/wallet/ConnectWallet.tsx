@@ -1,5 +1,10 @@
 "use client";
+import { parseEther } from "viem";
 
+import {
+  PARTIO_ABI,
+  PARTIO_ADDRESS,
+} from "@/lib/contracts/partio";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -7,6 +12,8 @@ import {
   useConnect,
   useDisconnect,
   useSwitchChain,
+  useWriteContract,
+  useWaitForTransactionReceipt,
 } from "wagmi";
 import { injected } from "wagmi/connectors";
 
@@ -54,7 +61,19 @@ export default function ConnectWallet() {
     switchChain,
     isPending: isSwitching,
   } = useSwitchChain();
+const {
+  writeContract,
+  data: hash,
+  isPending: isWriting,
+  error: writeError,
+} = useWriteContract();
 
+const {
+  isLoading: isConfirming,
+  isSuccess: isConfirmed,
+} = useWaitForTransactionReceipt({
+  hash,
+});
   function handleCreate(
     name: string,
     address: `0x${string}`
@@ -97,6 +116,39 @@ export default function ConnectWallet() {
     setRecipients((current) =>
       updateRecipientAmount(current, id, amount)
     );
+  }
+
+  async function handlePartition() {
+    const validRecipients = recipients.filter((recipient) => {
+      const value = Number(recipient.amount);
+
+      return !Number.isNaN(value) && value > 0;
+    });
+
+    if (validRecipients.length === 0) {
+      return;
+    }
+
+    const recipientAddresses = validRecipients.map(
+      (recipient) => recipient.address
+    );
+
+    const amounts = validRecipients.map((recipient) =>
+      parseEther(recipient.amount)
+    );
+
+    const totalValue = amounts.reduce(
+      (sum, amount) => sum + amount,
+      0n
+    );
+
+    writeContract({
+      address: PARTIO_ADDRESS,
+      abi: PARTIO_ABI,
+      functionName: "partition",
+      args: [recipientAddresses, amounts],
+      value: totalValue,
+    });
   }
 
   const totalAmount = useMemo(() => {
@@ -260,10 +312,25 @@ export default function ConnectWallet() {
                 </button>
 
                 <button
-                  disabled
-                  className="rounded-lg bg-blue-600 px-5 py-2 text-white opacity-50"
+                  onClick={handlePartition}
+                  disabled={
+                    !hasValidAmounts ||
+                    isWriting ||
+                    isConfirming
+                  }
+                  className={`rounded-lg px-5 py-2 font-medium text-white ${
+                    !hasValidAmounts ||
+                    isWriting ||
+                    isConfirming
+                      ? "bg-blue-600 opacity-50"
+                      : "bg-blue-600 hover:bg-blue-500"
+                  }`}
                 >
-                  Partition
+                  {isWriting
+                    ? "Waiting for wallet..."
+                    : isConfirming
+                    ? "Confirming..."
+                    : "Partition"}
                 </button>
               </div>
             </div>
