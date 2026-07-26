@@ -17,13 +17,26 @@
     "wagmi": "^3.7.3"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^4.0.15",
+    "@nomicfoundation/hardhat-ignition": "^3.1.8",
+    "@nomicfoundation/hardhat-toolbox": "^7.0.0",
+    "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.7",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/chai": "^5.2.3",
+    "@types/chai-as-promised": "^8.0.2",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^22.20.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "chai": "^6.2.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
+    "ethers": "^6.17.0",
+    "forge-std": "github:foundry-rs/forge-std#v1.9.4",
+    "hardhat": "^3.11.1",
+    "mocha": "^11.7.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
-  }
+    "typescript": "~6.0.3"
+  },
+  "type": "module"
 }
