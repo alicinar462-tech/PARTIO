@@ -38,8 +38,14 @@ export function usePartition(
 
   async function partition() {
     try {
+      console.clear();
+
       setWriteError(null);
+      setIsWriting(false);
+      setIsConfirming(false);
       setIsConfirmed(false);
+
+      console.log("A - Preparing transaction");
 
       const validRecipients = recipients.filter(
         (recipient) => {
@@ -53,7 +59,9 @@ export function usePartition(
       );
 
       if (validRecipients.length === 0) {
-        return;
+        throw new Error(
+          "No valid recipients."
+        );
       }
 
       const recipientAddresses =
@@ -71,6 +79,8 @@ export function usePartition(
         0n
       );
 
+      console.log("B - Opening wallet");
+
       setIsWriting(true);
 
       const hash =
@@ -85,20 +95,39 @@ export function usePartition(
           value: totalValue,
         });
 
+      console.log("C - Transaction Hash");
+      console.log(hash);
+
       setIsWriting(false);
       setIsConfirming(true);
 
-      await publicClient.waitForTransactionReceipt({
-        hash,
-      });
+      if (!publicClient) {
+        throw new Error(
+          "publicClient is undefined"
+        );
+      }
+
+      console.log("D - Waiting for receipt");
+
+      const receipt =
+        await publicClient.waitForTransactionReceipt({
+          hash,
+        });
+
+      console.log("E - Receipt received");
+      console.log(receipt);
 
       setIsConfirming(false);
       setIsConfirmed(true);
+
+      console.log("F - Success");
     } catch (error) {
+      console.error("G - ERROR");
       console.error(error);
 
       setIsWriting(false);
       setIsConfirming(false);
+      setIsConfirmed(false);
 
       setWriteError(error as Error);
     }

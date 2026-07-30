@@ -67,7 +67,14 @@ export default function ConnectWallet() {
     partition,
     isWriting,
     isConfirming,
+    isConfirmed,
   } = usePartition(recipients);
+
+  useEffect(() => {
+    if (!isConfirmed) return;
+
+    setReviewOpen(false);
+  }, [isConfirmed]);
 
   function handleDeleteContact(contact: Contact) {
     handleDelete(contact);
@@ -100,7 +107,6 @@ export default function ConnectWallet() {
   return (
     <>
       <div className="w-full space-y-8">
-
         <WalletCard
           address={address}
           chainId={chainId}
@@ -137,9 +143,7 @@ export default function ConnectWallet() {
                 recipientIds={recipients.map(
                   (recipient) => recipient.id
                 )}
-                onDelete={
-                  handleDeleteContact
-                }
+                onDelete={handleDeleteContact}
                 onAddRecipient={
                   handleAddRecipient
                 }
@@ -154,7 +158,9 @@ export default function ConnectWallet() {
                   handleRemoveRecipient
                 }
               />
-            </div>            <SummaryCard
+            </div>
+
+            <SummaryCard
               recipientCount={
                 recipients.length
               }
@@ -179,9 +185,7 @@ export default function ConnectWallet() {
         onClose={() =>
           setReviewOpen(false)
         }
-        onConfirm={() => {
-          partition();
-        }}
+        onConfirm={partition}
       />
     </>
   );

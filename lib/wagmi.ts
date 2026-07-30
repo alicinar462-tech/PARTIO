@@ -13,7 +13,7 @@ export const arcTestnet = defineChain({
   },
   rpcUrls: {
     default: {
-      http: ["https://rpc.testnet.arc.io"],
+      http: ["https://rpc.blockdaemon.testnet.arc.io"],
     },
   },
   blockExplorers: {
@@ -29,11 +29,12 @@ export const config = createConfig({
   chains: [arcTestnet],
   connectors: [
     injected({
-      target: "metaMask",
       shimDisconnect: true,
     }),
   ],
   transports: {
-    [arcTestnet.id]: http("https://rpc.testnet.arc.io"),
+    [arcTestnet.id]: http(
+      "https://rpc.blockdaemon.testnet.arc.io"
+    ),
   },
 });
