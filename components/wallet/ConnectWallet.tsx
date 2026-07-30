@@ -61,24 +61,27 @@ export default function ConnectWallet() {
     handleAddRecipient,
     handleRemoveRecipient,
     handleAmountChange,
+    clearRecipients,
   } = useRecipients();
 
   const {
     partition,
+    resetTransaction,
     isWriting,
     isConfirming,
     isConfirmed,
+    txHash,
   } = usePartition(recipients);
-
-  useEffect(() => {
-    if (!isConfirmed) return;
-
-    setReviewOpen(false);
-  }, [isConfirmed]);
 
   function handleDeleteContact(contact: Contact) {
     handleDelete(contact);
     handleRemoveRecipient(contact.id);
+  }
+
+  function handleNewPayment() {
+    resetTransaction();
+    clearRecipients();
+    setReviewOpen(false);
   }
 
   if (!mounted) return null;
@@ -141,9 +144,12 @@ export default function ConnectWallet() {
               <ContactsPanel
                 contacts={contacts}
                 recipientIds={recipients.map(
-                  (recipient) => recipient.id
+                  (recipient) =>
+                    recipient.id
                 )}
-                onDelete={handleDeleteContact}
+                onDelete={
+                  handleDeleteContact
+                }
                 onAddRecipient={
                   handleAddRecipient
                 }
@@ -182,10 +188,15 @@ export default function ConnectWallet() {
         totalAmount={totalAmount}
         isWriting={isWriting}
         isConfirming={isConfirming}
+        isConfirmed={isConfirmed}
+        txHash={txHash}
         onClose={() =>
           setReviewOpen(false)
         }
         onConfirm={partition}
+        onNewPayment={
+          handleNewPayment
+        }
       />
     </>
   );

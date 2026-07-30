@@ -20,9 +20,8 @@ export function usePartition(
 ) {
   const publicClient = usePublicClient();
 
-  const {
-    writeContractAsync,
-  } = useWriteContract();
+  const { writeContractAsync } =
+    useWriteContract();
 
   const [isWriting, setIsWriting] =
     useState(false);
@@ -32,6 +31,12 @@ export function usePartition(
 
   const [isConfirmed, setIsConfirmed] =
     useState(false);
+
+  const [txHash, setTxHash] =
+    useState<`0x${string}` | null>(null);
+
+  const [receipt, setReceipt] =
+    useState<any>(null);
 
   const [writeError, setWriteError] =
     useState<Error | null>(null);
@@ -44,19 +49,22 @@ export function usePartition(
       setIsWriting(false);
       setIsConfirming(false);
       setIsConfirmed(false);
+      setTxHash(null);
+      setReceipt(null);
 
       console.log("A - Preparing transaction");
 
-      const validRecipients = recipients.filter(
-        (recipient) => {
-          const value = Number(recipient.amount);
+      const validRecipients =
+        recipients.filter((recipient) => {
+          const value = Number(
+            recipient.amount
+          );
 
           return (
             !Number.isNaN(value) &&
             value > 0
           );
-        }
-      );
+        });
 
       if (validRecipients.length === 0) {
         throw new Error(
@@ -66,20 +74,25 @@ export function usePartition(
 
       const recipientAddresses =
         validRecipients.map(
-          (recipient) => recipient.address
+          (recipient) =>
+            recipient.address
         );
 
-      const amounts = validRecipients.map(
-        (recipient) =>
-          parseEther(recipient.amount)
-      );
+      const amounts =
+        validRecipients.map(
+          (recipient) =>
+            parseEther(recipient.amount)
+        );
 
-      const totalValue = amounts.reduce(
-        (sum, amount) => sum + amount,
-        0n
-      );
+      const totalValue =
+        amounts.reduce(
+          (sum, amount) => sum + amount,
+          0n
+        );
 
-      console.log("B - Opening wallet");
+      console.log(
+        "B - Opening wallet"
+      );
 
       setIsWriting(true);
 
@@ -95,8 +108,12 @@ export function usePartition(
           value: totalValue,
         });
 
-      console.log("C - Transaction Hash");
+      console.log(
+        "C - Transaction Hash"
+      );
       console.log(hash);
+
+      setTxHash(hash);
 
       setIsWriting(false);
       setIsConfirming(true);
@@ -107,15 +124,23 @@ export function usePartition(
         );
       }
 
-      console.log("D - Waiting for receipt");
+      console.log(
+        "D - Waiting for receipt"
+      );
 
-      const receipt =
-        await publicClient.waitForTransactionReceipt({
-          hash,
-        });
+      const txReceipt =
+        await publicClient.waitForTransactionReceipt(
+          {
+            hash,
+          }
+        );
 
-      console.log("E - Receipt received");
-      console.log(receipt);
+      console.log(
+        "E - Receipt received"
+      );
+      console.log(txReceipt);
+
+      setReceipt(txReceipt);
 
       setIsConfirming(false);
       setIsConfirmed(true);
@@ -129,15 +154,29 @@ export function usePartition(
       setIsConfirming(false);
       setIsConfirmed(false);
 
-      setWriteError(error as Error);
+      setWriteError(
+        error as Error
+      );
     }
+  }
+
+  function resetTransaction() {
+    setIsWriting(false);
+    setIsConfirming(false);
+    setIsConfirmed(false);
+    setTxHash(null);
+    setReceipt(null);
+    setWriteError(null);
   }
 
   return {
     partition,
+    resetTransaction,
     isWriting,
     isConfirming,
     isConfirmed,
+    txHash,
+    receipt,
     writeError,
   };
 }

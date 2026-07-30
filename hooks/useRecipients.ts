@@ -12,15 +12,20 @@ import {
 } from "@/lib/services/recipients";
 
 export function useRecipients() {
-  const [recipients, setRecipients] = useState<Recipient[]>([]);
+  const [recipients, setRecipients] =
+    useState<Recipient[]>([]);
 
-  function handleAddRecipient(contact: Contact) {
+  function handleAddRecipient(
+    contact: Contact
+  ) {
     setRecipients((current) =>
       addRecipient(current, contact)
     );
   }
 
-  function handleRemoveRecipient(id: string) {
+  function handleRemoveRecipient(
+    id: string
+  ) {
     setRecipients((current) =>
       removeRecipient(current, id)
     );
@@ -31,28 +36,48 @@ export function useRecipients() {
     amount: string
   ) {
     setRecipients((current) =>
-      updateRecipientAmount(current, id, amount)
+      updateRecipientAmount(
+        current,
+        id,
+        amount
+      )
     );
   }
 
+  function clearRecipients() {
+    setRecipients([]);
+  }
+
   const totalAmount = useMemo(() => {
-    return recipients.reduce((sum, recipient) => {
-      const value = Number(recipient.amount);
+    return recipients.reduce(
+      (sum, recipient) => {
+        const value = Number(
+          recipient.amount
+        );
 
-      if (Number.isNaN(value)) {
-        return sum;
-      }
+        if (Number.isNaN(value)) {
+          return sum;
+        }
 
-      return sum + value;
-    }, 0);
+        return sum + value;
+      },
+      0
+    );
   }, [recipients]);
 
   const hasValidAmounts = useMemo(() => {
-    return recipients.some((recipient) => {
-      const value = Number(recipient.amount);
+    return recipients.some(
+      (recipient) => {
+        const value = Number(
+          recipient.amount
+        );
 
-      return !Number.isNaN(value) && value > 0;
-    });
+        return (
+          !Number.isNaN(value) &&
+          value > 0
+        );
+      }
+    );
   }, [recipients]);
 
   return {
@@ -62,5 +87,6 @@ export function useRecipients() {
     handleAddRecipient,
     handleRemoveRecipient,
     handleAmountChange,
+    clearRecipients,
   };
 }
