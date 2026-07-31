@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 
-import { parseEther } from "viem";
+import {
+  parseEther,
+  type TransactionReceipt,
+} from "viem";
+
 import {
   usePublicClient,
   useWriteContract,
@@ -14,6 +18,61 @@ import {
 } from "@/lib/contracts/partio";
 
 import { Recipient } from "@/types/recipient";
+
+function getReadableError(error: unknown): Error {
+  const message =
+    error instanceof Error
+      ? error.message.toLowerCase()
+      : String(error).toLowerCase();
+
+  if (
+    message.includes("user rejected") ||
+    message.includes("user denied") ||
+    message.includes("rejected")
+  ) {
+    return new Error(
+      "Transaction cancelled. No funds were transferred."
+    );
+  }
+
+  if (
+    message.includes("insufficient funds") ||
+    message.includes("insufficient balance")
+  ) {
+    return new Error(
+      "Not enough USDC. Please add funds and try again."
+    );
+  }
+
+  if (
+    message.includes("network") ||
+    message.includes("chain")
+  ) {
+    return new Error(
+      "Please switch to ARC Testnet."
+    );
+  }
+
+  if (
+    message.includes("execution reverted")
+  ) {
+    return new Error(
+      "Payment couldn't be completed. Please try again."
+    );
+  }
+
+  if (
+    message.includes("timeout")
+  ) {
+    return new Error(
+      "Network is taking longer than expected. Please try again."
+    );
+  }
+
+  return new Error(
+    "Something went wrong. Please try again."
+  );
+}
 
 export function usePartition(
   recipients: Recipient[]
@@ -36,7 +95,9 @@ export function usePartition(
     useState<`0x${string}` | null>(null);
 
   const [receipt, setReceipt] =
-    useState<any>(null);
+    useState<TransactionReceipt | null>(
+      null
+    );
 
   const [writeError, setWriteError] =
     useState<Error | null>(null);
@@ -68,7 +129,7 @@ export function usePartition(
 
       if (validRecipients.length === 0) {
         throw new Error(
-          "No valid recipients."
+          "Please add at least one recipient."
         );
       }
 
@@ -120,7 +181,7 @@ export function usePartition(
 
       if (!publicClient) {
         throw new Error(
-          "publicClient is undefined"
+          "Unable to connect to ARC Testnet."
         );
       }
 
@@ -155,7 +216,7 @@ export function usePartition(
       setIsConfirmed(false);
 
       setWriteError(
-        error as Error
+        getReadableError(error)
       );
     }
   }

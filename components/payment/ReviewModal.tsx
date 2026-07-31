@@ -10,6 +10,7 @@ type ReviewModalProps = {
   isConfirming: boolean;
   isConfirmed: boolean;
   txHash: `0x${string}` | null;
+  writeError: Error | null;
   onClose: () => void;
   onConfirm: () => void;
   onNewPayment: () => void;
@@ -23,6 +24,7 @@ export default function ReviewModal({
   isConfirming,
   isConfirmed,
   txHash,
+  writeError,
   onClose,
   onConfirm,
   onNewPayment,
@@ -55,6 +57,18 @@ export default function ReviewModal({
             </div>
 
             <div className="max-h-[420px] space-y-4 overflow-y-auto px-6 py-5">
+              {writeError && (
+                <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4">
+                  <p className="font-semibold text-red-300">
+                    Payment Failed
+                  </p>
+
+                  <p className="mt-1 text-sm text-red-200">
+                    {writeError.message}
+                  </p>
+                </div>
+              )}
+
               {validRecipients.length === 0 ? (
                 <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-6 text-center text-neutral-400">
                   No valid recipients found.
@@ -129,9 +143,9 @@ export default function ReviewModal({
                   }`}
                 >
                   {isWriting
-                    ? "Waiting for wallet..."
+                    ? "Confirm the transaction in your wallet..."
                     : isConfirming
-                    ? "Confirming on ARC..."
+                    ? "Waiting for ARC confirmation..."
                     : "Confirm Payment"}
                 </button>
               </div>

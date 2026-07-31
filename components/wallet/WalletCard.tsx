@@ -24,13 +24,27 @@ export default function WalletCard({
 
   return (
     <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
-      <div className="mb-4 text-lg font-semibold text-green-500">
-        Wallet Connected
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-white">
+            Connected Wallet
+          </h2>
+
+          <p className="mt-1 text-sm text-neutral-400">
+            Ready to send payments on ARC Network.
+          </p>
+        </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="space-y-2">
-          <WalletAddress address={address} />
+      <div className="flex flex-wrap items-center justify-between gap-6">
+        <div className="space-y-3">
+          <div>
+            <p className="mb-1 text-xs uppercase tracking-wide text-neutral-500">
+              Wallet Address
+            </p>
+
+            <WalletAddress address={address} />
+          </div>
 
           <NetworkBadge
             chainId={chainId}
@@ -43,17 +57,17 @@ export default function WalletCard({
             <button
               onClick={onSwitchNetwork}
               disabled={isSwitching}
-              className="rounded-lg bg-yellow-500 px-4 py-2 font-semibold text-black hover:bg-yellow-400"
+              className="rounded-lg bg-yellow-500 px-4 py-2 font-semibold text-black transition hover:bg-yellow-400 disabled:opacity-50"
             >
               {isSwitching
                 ? "Switching..."
-                : "Switch Network"}
+                : "Switch to ARC"}
             </button>
           )}
 
           <button
             onClick={onDisconnect}
-            className="rounded-lg bg-red-600 px-4 py-2 hover:bg-red-700"
+            className="rounded-lg bg-neutral-800 px-4 py-2 font-medium text-white transition hover:bg-neutral-700"
           >
             Disconnect
           </button>

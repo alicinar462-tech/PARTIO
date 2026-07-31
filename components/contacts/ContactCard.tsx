@@ -17,14 +17,14 @@ export default function ContactCard({
     `${contact.address.slice(0, 6)}...${contact.address.slice(-4)}`;
 
   return (
-    <div className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-800/70 px-3 py-2 transition hover:border-neutral-700 hover:bg-neutral-800">
+    <div className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-800/60 p-4 transition hover:border-blue-500/40 hover:bg-neutral-800">
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
           {contact.name.charAt(0).toUpperCase()}
         </div>
 
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-white">
+          <p className="truncate font-semibold text-white">
             {contact.name}
           </p>
 
@@ -37,17 +37,17 @@ export default function ContactCard({
       <div className="flex shrink-0 items-center gap-2">
         {isRecipient ? (
           <div
-            title="Recipient added"
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-600 text-sm font-bold text-white"
+            title="Already added"
+            className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-600 text-lg font-bold text-white"
           >
             ✓
           </div>
         ) : (
           <button
             type="button"
-            title="Add to recipients"
+            title="Add recipient"
             onClick={() => onAddRecipient?.(contact)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white transition hover:bg-blue-500"
+            className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-lg font-bold text-white transition hover:bg-blue-500"
           >
             +
           </button>
@@ -55,11 +55,11 @@ export default function ContactCard({
 
         <button
           type="button"
-          title="Remove contact"
+          title="Delete contact"
           onClick={() => onDelete?.(contact)}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-sm text-red-400 transition hover:bg-red-500/10 hover:text-red-300"
+          className="flex h-10 w-10 items-center justify-center rounded-lg border border-red-500/20 text-red-400 transition hover:bg-red-500/10 hover:text-red-300"
         >
-          🗑
+          ✕
         </button>
       </div>
     </div>

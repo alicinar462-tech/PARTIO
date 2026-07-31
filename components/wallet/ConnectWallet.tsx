@@ -71,6 +71,7 @@ export default function ConnectWallet() {
     isConfirming,
     isConfirmed,
     txHash,
+    writeError,
   } = usePartition(recipients);
 
   function handleDeleteContact(contact: Contact) {
@@ -190,6 +191,7 @@ export default function ConnectWallet() {
         isConfirming={isConfirming}
         isConfirmed={isConfirmed}
         txHash={txHash}
+        writeError={writeError}
         onClose={() =>
           setReviewOpen(false)
         }

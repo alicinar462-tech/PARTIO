@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Contact } from "@/types/contact";
 
@@ -11,11 +11,9 @@ import {
 } from "@/lib/services/contacts";
 
 export function useContacts() {
-  const [contacts, setContacts] = useState<Contact[]>([]);
-
-  useEffect(() => {
-    setContacts(getContacts());
-  }, []);
+  const [contacts, setContacts] = useState<Contact[]>(() =>
+    getContacts()
+  );
 
   function handleCreate(
     name: string,
