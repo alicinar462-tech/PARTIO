@@ -2,12 +2,16 @@
 
 import { useEffect, useState } from "react";
 
+import { formatEther } from "viem";
+
 import {
   useAccount,
+  useBalance,
   useConnect,
   useDisconnect,
   useSwitchChain,
 } from "wagmi";
+
 import { injected } from "wagmi/connectors";
 
 import { arcTestnet } from "@/lib/wagmi";
@@ -27,6 +31,8 @@ import WalletCard from "./WalletCard";
 import SummaryCard from "../payment/SummaryCard";
 import ReviewModal from "../payment/ReviewModal";
 
+const GAS_BUFFER = 0.01;
+
 export default function ConnectWallet() {
   const [mounted, setMounted] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -38,8 +44,18 @@ export default function ConnectWallet() {
   const { address, chainId, isConnected } =
     useAccount();
 
-  const { connect, isPending: isConnecting } =
-    useConnect();
+  const { data: balanceData } = useBalance({
+    address,
+  });
+
+  const availableBalance = Number(
+    formatEther(balanceData?.value ?? 0n)
+  );
+
+  const {
+    connect,
+    isPending: isConnecting,
+  } = useConnect();
 
   const { disconnect } = useDisconnect();
 
@@ -74,7 +90,21 @@ export default function ConnectWallet() {
     writeError,
   } = usePartition(recipients);
 
-  function handleDeleteContact(contact: Contact) {
+  const remainingBalance =
+    availableBalance - totalAmount;
+
+  const missingAmount = Math.max(
+    totalAmount - availableBalance,
+    0
+  );
+
+  const hasEnoughBalance =
+    availableBalance >=
+    totalAmount + GAS_BUFFER;
+
+  function handleDeleteContact(
+    contact: Contact
+  ) {
     handleDelete(contact);
     handleRemoveRecipient(contact.id);
   }
@@ -114,13 +144,19 @@ export default function ConnectWallet() {
         <WalletCard
           address={address}
           chainId={chainId}
+          availableBalance={
+            availableBalance
+          }
           isSwitching={isSwitching}
           onSwitchNetwork={() =>
             switchChain({
-              chainId: arcTestnet.id,
+              chainId:
+                arcTestnet.id,
             })
           }
-          onDisconnect={() => disconnect()}
+          onDisconnect={() =>
+            disconnect()
+          }
         />
 
         {isCorrectNetwork && (
@@ -132,12 +168,16 @@ export default function ConnectWallet() {
                 </h2>
 
                 <p className="mt-1 text-sm text-neutral-400">
-                  Save wallet addresses for future payment partitions.
+                  Save wallet addresses
+                  for future payment
+                  partitions.
                 </p>
               </div>
 
               <ContactForm
-                onCreate={handleCreate}
+                onCreate={
+                  handleCreate
+                }
               />
             </div>
 
@@ -145,7 +185,9 @@ export default function ConnectWallet() {
               <ContactsPanel
                 contacts={contacts}
                 recipientIds={recipients.map(
-                  (recipient) =>
+                  (
+                    recipient
+                  ) =>
                     recipient.id
                 )}
                 onDelete={
@@ -157,7 +199,9 @@ export default function ConnectWallet() {
               />
 
               <RecipientsPanel
-                recipients={recipients}
+                recipients={
+                  recipients
+                }
                 onAmountChange={
                   handleAmountChange
                 }
@@ -171,7 +215,21 @@ export default function ConnectWallet() {
               recipientCount={
                 recipients.length
               }
-              totalAmount={totalAmount}
+              totalAmount={
+                totalAmount
+              }
+              availableBalance={
+                availableBalance
+              }
+              remainingBalance={
+                remainingBalance
+              }
+              missingAmount={
+                missingAmount
+              }
+              hasEnoughBalance={
+                hasEnoughBalance
+              }
               hasValidAmounts={
                 hasValidAmounts
               }
@@ -188,8 +246,12 @@ export default function ConnectWallet() {
         recipients={recipients}
         totalAmount={totalAmount}
         isWriting={isWriting}
-        isConfirming={isConfirming}
-        isConfirmed={isConfirmed}
+        isConfirming={
+          isConfirming
+        }
+        isConfirmed={
+          isConfirmed
+        }
         txHash={txHash}
         writeError={writeError}
         onClose={() =>

@@ -8,6 +8,7 @@ import WalletAddress from "./WalletAddress";
 type WalletCardProps = {
   address?: `0x${string}`;
   chainId?: number;
+  availableBalance: number;
   isSwitching: boolean;
   onSwitchNetwork: () => void;
   onDisconnect: () => void;
@@ -16,11 +17,13 @@ type WalletCardProps = {
 export default function WalletCard({
   address,
   chainId,
+  availableBalance,
   isSwitching,
   onSwitchNetwork,
   onDisconnect,
 }: WalletCardProps) {
-  const isCorrectNetwork = chainId === arcTestnet.id;
+  const isCorrectNetwork =
+    chainId === arcTestnet.id;
 
   return (
     <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
@@ -37,13 +40,23 @@ export default function WalletCard({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-6">
-        <div className="space-y-3">
+        <div className="space-y-5">
           <div>
             <p className="mb-1 text-xs uppercase tracking-wide text-neutral-500">
               Wallet Address
             </p>
 
             <WalletAddress address={address} />
+          </div>
+
+          <div>
+            <p className="mb-1 text-xs uppercase tracking-wide text-neutral-500">
+              Available Balance
+            </p>
+
+            <p className="text-2xl font-bold text-green-400">
+              {availableBalance.toFixed(2)} USDC
+            </p>
           </div>
 
           <NetworkBadge
