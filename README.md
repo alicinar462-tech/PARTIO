@@ -68,9 +68,3 @@ I'm still learning and building.
 If you have ideas or find something that could be improved, I'd really appreciate your feedback.
 
 Every suggestion helps make PARTIO a little better.
-
----
-
-## License
-
-MIT
