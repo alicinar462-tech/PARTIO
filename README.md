@@ -1,31 +1,76 @@
-# ArcSplit
+# PARTIO
 
-One-click USDC payment splitting on ARC.
+### One Payment. Multiple Recipients.
 
-🚧 **Work in Progress**
+PARTIO is a payment application I'm building for the ARC Hackathon.
 
-ArcSplit is an open-source payment splitting protocol built on the ARC network. It enables users to distribute a single USDC payment to multiple recipients in one transaction.
+It allows users to send one native USDC payment to multiple recipients in a single on-chain transaction.
+
+The project is live on ARC Testnet and I'm continuing to improve it based on user feedback.
+
+---
+
+## Live Demo
+
+🌐 https://partiopay.xyz
+
+---
 
 ## Features
 
-- Connect wallet
+- Native USDC payments
+- Multiple recipients
+- Single on-chain transaction
+- Wallet connection
 - ARC Testnet detection
 - One-click network switching
-- Modular React architecture
-- Multi-recipient payment flow *(coming soon)*
-- USDC balance display *(coming soon)*
-- Circle App Kit integration *(coming soon)*
+- Live wallet balance
+- Contact management
+- Responsive UI
 
-## Tech Stack
+---
 
+## Built With
+
+- ARC Network
+- Solidity
 - Next.js
-- React
 - TypeScript
-- Tailwind CSS
 - Wagmi
 - Viem
-- ARC Network
+- Tailwind CSS
 
-## Status
+---
 
-Currently under active development for the ARC Hackathon.
+## Roadmap
+
+Some things I'd like to add next:
+
+- Transaction history
+- Arc Name support
+- Better mobile experience
+- Improved contact management
+- Better accessibility
+- UI improvements
+
+I'm also interested in exploring a more unified payment experience for cross-chain users.
+
+Instead of asking users to bridge assets first, I'd like to see how PARTIO can make that process feel simpler and more seamless.
+
+I'd also like to explore more of Circle's developer tools as the project grows.
+
+---
+
+## Feedback
+
+I'm still learning and building.
+
+If you have ideas or find something that could be improved, I'd really appreciate your feedback.
+
+Every suggestion helps make PARTIO a little better.
+
+---
+
+## License
+
+MIT
