@@ -2,19 +2,11 @@ import { createArcAdapter } from "./adapters/viem";
 import { getUnifiedBalances } from "./gateway/balances";
 
 export async function testUnifiedBalance() {
-  try {
-    console.log("Creating adapter...");
+  const adapter = await createArcAdapter();
 
-    const adapter = await createArcAdapter();
+  const balance = await getUnifiedBalances(adapter);
 
-    console.log("Adapter:", adapter);
+  console.log("Unified Balance:", balance);
 
-    const balances = await getUnifiedBalances(adapter);
-
-    console.log("Unified Balance:", balances);
-
-    return balances;
-  } catch (err) {
-    console.error("Unified Balance Error:", err);
-  }
+  return balance;
 }

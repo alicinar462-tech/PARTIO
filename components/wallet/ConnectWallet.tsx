@@ -28,6 +28,8 @@ import RecipientsPanel from "../recipients/RecipientsPanel";
 
 import WalletCard from "./WalletCard";
 
+import UnifiedBalanceCard from "@/src/unified/UnifiedBalanceCard";
+
 import SummaryCard from "../payment/SummaryCard";
 import ReviewModal from "../payment/ReviewModal";
 
@@ -159,6 +161,10 @@ export default function ConnectWallet() {
           }
         />
 
+        {/* Unified Balance HER ZAMAN görünür */}
+        <UnifiedBalanceCard />
+
+        {/* Sadece PARTIO ödeme ekranı ARC'da görünür */}
         {isCorrectNetwork && (
           <>
             <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">

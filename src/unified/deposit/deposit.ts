@@ -7,10 +7,10 @@ export async function depositUSDC(
   adapter: any,
   amount: string = "1.00"
 ) {
-  const chain = resolveChainIdentifier("Arc_Testnet");
+  const chain = resolveChainIdentifier("Base_Sepolia");
 
   if (chain.type !== "evm") {
-    throw new Error("Arc_Testnet is not an EVM chain.");
+    throw new Error("Base_Sepolia is not an EVM chain.");
   }
 
   await adapter.ensureChain(chain);
@@ -18,7 +18,7 @@ export async function depositUSDC(
   return await kit.unifiedBalance.deposit({
     from: {
       adapter,
-      chain: "Arc_Testnet",
+      chain: "Base_Sepolia",
     },
     amount,
     token: "USDC",
