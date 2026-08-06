@@ -4,28 +4,83 @@ import { useState } from "react";
 
 import { createArcAdapter } from "./adapters/viem";
 import { depositUSDC } from "./deposit/deposit";
+import { spendUSDC } from "./spend/spend";
 import { testUnifiedBalance } from "./test";
+
+const TEST_RECIPIENT =
+  "0x8D346b188cf92bB69e2fC2A7862517c65a819D10" as const;
 
 export default function UnifiedBalanceCard() {
   const [loading, setLoading] = useState(false);
-  const [confirmed, setConfirmed] = useState("0.000000");
-  const [pending, setPending] = useState("0.000000");
+
+  const [confirmed, setConfirmed] =
+    useState("0.000000");
+
+  const [pending, setPending] =
+    useState("0.000000");
 
   async function refreshBalance() {
-    const balance = await testUnifiedBalance();
+    try {
+      const balance =
+        await testUnifiedBalance();
 
-    setConfirmed(balance.totalConfirmedBalance ?? "0.000000");
-    setPending(balance.totalPendingBalance ?? "0.000000");
+      setConfirmed(
+        balance.totalConfirmedBalance ??
+          "0.000000"
+      );
+
+      setPending(
+        balance.totalPendingBalance ??
+          "0.000000"
+      );
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   async function handleDeposit() {
     try {
       setLoading(true);
 
-      const adapter = await createArcAdapter();
+      const adapter =
+        await createArcAdapter();
 
-      const result = await depositUSDC(adapter, "1.00");
+      const result =
+        await depositUSDC(
+          adapter,
+          "1.00"
+        );
 
+      console.log(
+        "Deposit Result"
+      );
+      console.log(result);
+
+      await refreshBalance();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSpend() {
+    try {
+      setLoading(true);
+
+      const adapter =
+        await createArcAdapter();
+
+      const result =
+        await spendUSDC(
+          adapter,
+          TEST_RECIPIENT,
+          "1.00"
+        );
+
+      console.log(
+        "Spend Result"
+      );
       console.log(result);
 
       await refreshBalance();
@@ -57,7 +112,9 @@ export default function UnifiedBalanceCard() {
             Confirmed
           </span>
 
-          <span>{confirmed} USDC</span>
+          <span>
+            {confirmed} USDC
+          </span>
         </div>
 
         <div className="flex justify-between">
@@ -65,7 +122,9 @@ export default function UnifiedBalanceCard() {
             Pending
           </span>
 
-          <span>{pending} USDC</span>
+          <span>
+            {pending} USDC
+          </span>
         </div>
       </div>
 
@@ -75,8 +134,18 @@ export default function UnifiedBalanceCard() {
         className="mt-6 w-full rounded-lg bg-indigo-600 px-6 py-3 font-semibold hover:bg-indigo-700 disabled:opacity-50"
       >
         {loading
-          ? "Depositing..."
+          ? "Processing..."
           : "Deposit 1.00 USDC"}
+      </button>
+
+      <button
+        onClick={handleSpend}
+        disabled={loading}
+        className="mt-3 w-full rounded-lg bg-green-600 px-6 py-3 font-semibold hover:bg-green-700 disabled:opacity-50"
+      >
+        {loading
+          ? "Processing..."
+          : "Spend 1.00 USDC"}
       </button>
     </div>
   );
