@@ -2,73 +2,53 @@
 pragma solidity ^0.8.28;
 
 interface IERC20 {
-    function transfer(
-        address to,
-        uint256 amount
-    ) external returns (bool);
+    function transfer(address to, uint256 value)
+        external
+        returns (bool);
 
-    function balanceOf(
-        address account
-    ) external view returns (uint256);
+    function balanceOf(address account)
+        external
+        view
+        returns (uint256);
 }
 
-contract Partio {
-    error InvalidRecipients();
-    error InvalidAmounts();
-    error InvalidValue();
-    error InsufficientBalance();
-    error TransferFailed(address recipient);
-
+contract PartioV2 {
     IERC20 public immutable usdc;
 
+    error InvalidRecipients();
+    error InvalidAmounts();
+    error TransferFailed(address recipient);
+
     event PaymentSent(
-        address indexed sender,
         address indexed recipient,
         uint256 amount
     );
 
     event PaymentPartitioned(
-        address indexed sender,
         uint256 totalAmount,
         uint256 recipientCount
     );
 
     constructor(address usdcAddress) {
-        if (usdcAddress == address(0)) {
-            revert InvalidValue();
-        }
-
         usdc = IERC20(usdcAddress);
     }
 
     function partition(
         address[] calldata recipients,
-        uint256[] calldata amounts,
-        uint256 totalAmount
+        uint256[] calldata amounts
     ) external {
-        if (recipients.length == 0) {
+        if (recipients.length == 0)
             revert InvalidRecipients();
-        }
 
-        if (recipients.length != amounts.length) {
+        if (recipients.length != amounts.length)
             revert InvalidAmounts();
-        }
-
-        if (totalAmount == 0) {
-            revert InvalidAmounts();
-        }
 
         uint256 total;
 
         unchecked {
-            for (
-                uint256 i = 0;
-                i < amounts.length;
-                i++
-            ) {
+            for (uint256 i; i < amounts.length; ++i) {
                 if (
-                    recipients[i] ==
-                    address(0)
+                    recipients[i] == address(0)
                 ) {
                     revert InvalidRecipients();
                 }
@@ -81,24 +61,13 @@ contract Partio {
             }
         }
 
-        if (total != totalAmount) {
-            revert InvalidValue();
-        }
-
-        if (
-            usdc.balanceOf(
-                address(this)
-            ) < totalAmount
-        ) {
-            revert InsufficientBalance();
-        }
+        require(
+            usdc.balanceOf(address(this)) >= total,
+            "INSUFFICIENT_USDC"
+        );
 
         unchecked {
-            for (
-                uint256 i = 0;
-                i < recipients.length;
-                i++
-            ) {
+            for (uint256 i; i < recipients.length; ++i) {
                 bool success =
                     usdc.transfer(
                         recipients[i],
@@ -112,7 +81,6 @@ contract Partio {
                 }
 
                 emit PaymentSent(
-                    msg.sender,
                     recipients[i],
                     amounts[i]
                 );
@@ -120,9 +88,18 @@ contract Partio {
         }
 
         emit PaymentPartitioned(
-            msg.sender,
-            totalAmount,
+            total,
             recipients.length
+        );
+    }
+
+    function balance()
+        external
+        view
+        returns (uint256)
+    {
+        return usdc.balanceOf(
+            address(this)
         );
     }
 }

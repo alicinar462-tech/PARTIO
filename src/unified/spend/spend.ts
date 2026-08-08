@@ -8,26 +8,37 @@ export async function spendUSDC(
   recipientAddress: `0x${string}`,
   amount: string
 ) {
-  const chain = resolveChainIdentifier("Arc_Testnet");
+  const chain =
+    resolveChainIdentifier("Arc_Testnet");
 
   if (chain.type !== "evm") {
-    throw new Error("Arc_Testnet is not an EVM chain.");
+    throw new Error(
+      "Arc_Testnet is not an EVM chain."
+    );
   }
 
   await adapter.ensureChain(chain);
 
-  return await kit.unifiedBalance.spend({
-    amount,
-    token: "USDC",
+  console.log("Spend Started");
 
-    from: {
-      adapter,
-    },
+  const result =
+    await kit.unifiedBalance.spend({
+      amount,
+      token: "USDC",
 
-    to: {
-      adapter,
-      chain: "Arc_Testnet",
-      recipientAddress,
-    },
-  });
+      from: {
+        adapter,
+      },
+
+      to: {
+        adapter,
+        chain: "Arc_Testnet",
+        recipientAddress,
+      },
+    });
+
+  console.log("Spend Result");
+  console.log(result);
+
+  return result;
 }

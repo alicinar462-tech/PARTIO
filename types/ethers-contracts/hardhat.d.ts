@@ -10,13 +10,25 @@ import * as Contracts from "./index.js";
 
 declare module "@nomicfoundation/hardhat-ethers/types" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
-  getContractFactory(name: 'Partio', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.Partio__factory>
+  getContractFactory(name: 'IERC20', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IERC20__factory>
+getContractFactory(name: 'PartioV2', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.PartioV2__factory>
+getContractFactory(name: 'IERC20', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IERC20__factory>
+getContractFactory(name: 'Partio', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.Partio__factory>
 
-  getContractAt(name: 'Partio', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Partio>
+  getContractAt(name: 'IERC20', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IERC20>
+getContractAt(name: 'PartioV2', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.PartioV2>
+getContractAt(name: 'IERC20', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IERC20>
+getContractAt(name: 'Partio', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Partio>
 
-  deployContract(name: 'Partio', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Partio>
+  deployContract(name: 'IERC20', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IERC20>
+deployContract(name: 'PartioV2', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.PartioV2>
+deployContract(name: 'IERC20', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IERC20>
+deployContract(name: 'Partio', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Partio>
 
-  deployContract(name: 'Partio', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Partio>
+  deployContract(name: 'IERC20', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IERC20>
+deployContract(name: 'PartioV2', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.PartioV2>
+deployContract(name: 'IERC20', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IERC20>
+deployContract(name: 'Partio', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Partio>
 
     // default types
     getContractFactory(

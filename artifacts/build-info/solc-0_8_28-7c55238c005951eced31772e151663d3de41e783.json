@@ -1,0 +1,49 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_28-7c55238c005951eced31772e151663d3de41e783",
+  "solcVersion": "0.8.28",
+  "solcLongVersion": "0.8.28+commit.7893614a",
+  "compilerType": "solc",
+  "toolVersions": {
+    "hardhat": "3.11.1"
+  },
+  "userSourceNameMap": {
+    "contracts/Partio.sol": "project/contracts/Partio.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "cancun",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode.linkReferences",
+            "evm.bytecode.object",
+            "evm.bytecode.opcodes",
+            "evm.bytecode.sourceMap",
+            "evm.deployedBytecode.immutableReferences",
+            "evm.deployedBytecode.linkReferences",
+            "evm.deployedBytecode.object",
+            "evm.deployedBytecode.opcodes",
+            "evm.deployedBytecode.sourceMap",
+            "evm.methodIdentifiers"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/Partio.sol": {
+        "content": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.28;\r\n\r\ninterface IERC20 {\r\n    function transfer(\r\n        address to,\r\n        uint256 amount\r\n    ) external returns (bool);\r\n\r\n    function balanceOf(\r\n        address account\r\n    ) external view returns (uint256);\r\n}\r\n\r\ncontract Partio {\r\n    error InvalidRecipients();\r\n    error InvalidAmounts();\r\n    error InvalidValue();\r\n    error InsufficientBalance();\r\n    error TransferFailed(address recipient);\r\n\r\n    IERC20 public immutable usdc;\r\n\r\n    event PaymentSent(\r\n        address indexed sender,\r\n        address indexed recipient,\r\n        uint256 amount\r\n    );\r\n\r\n    event PaymentPartitioned(\r\n        address indexed sender,\r\n        uint256 totalAmount,\r\n        uint256 recipientCount\r\n    );\r\n\r\n    constructor(address usdcAddress) {\r\n        if (usdcAddress == address(0)) {\r\n            revert InvalidValue();\r\n        }\r\n\r\n        usdc = IERC20(usdcAddress);\r\n    }\r\n\r\n    function partition(\r\n        address[] calldata recipients,\r\n        uint256[] calldata amounts,\r\n        uint256 totalAmount\r\n    ) external {\r\n        if (recipients.length == 0) {\r\n            revert InvalidRecipients();\r\n        }\r\n\r\n        if (recipients.length != amounts.length) {\r\n            revert InvalidAmounts();\r\n        }\r\n\r\n        if (totalAmount == 0) {\r\n            revert InvalidAmounts();\r\n        }\r\n\r\n        uint256 total;\r\n\r\n        unchecked {\r\n            for (\r\n                uint256 i = 0;\r\n                i < amounts.length;\r\n                i++\r\n            ) {\r\n                if (\r\n                    recipients[i] ==\r\n                    address(0)\r\n                ) {\r\n                    revert InvalidRecipients();\r\n                }\r\n\r\n                if (amounts[i] == 0) {\r\n                    revert InvalidAmounts();\r\n                }\r\n\r\n                total += amounts[i];\r\n            }\r\n        }\r\n\r\n        if (total != totalAmount) {\r\n            revert InvalidValue();\r\n        }\r\n\r\n        if (\r\n            usdc.balanceOf(\r\n                address(this)\r\n            ) < totalAmount\r\n        ) {\r\n            revert InsufficientBalance();\r\n        }\r\n\r\n        unchecked {\r\n            for (\r\n                uint256 i = 0;\r\n                i < recipients.length;\r\n                i++\r\n            ) {\r\n                bool success =\r\n                    usdc.transfer(\r\n                        recipients[i],\r\n                        amounts[i]\r\n                    );\r\n\r\n                if (!success) {\r\n                    revert TransferFailed(\r\n                        recipients[i]\r\n                    );\r\n                }\r\n\r\n                emit PaymentSent(\r\n                    msg.sender,\r\n                    recipients[i],\r\n                    amounts[i]\r\n                );\r\n            }\r\n        }\r\n\r\n        emit PaymentPartitioned(\r\n            msg.sender,\r\n            totalAmount,\r\n            recipients.length\r\n        );\r\n    }\r\n}"
+      }
+    }
+  }
+}

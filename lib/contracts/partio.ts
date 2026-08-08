@@ -1,7 +1,23 @@
 export const PARTIO_ADDRESS =
-  "0x8D346b188cf92bB69e2fC2A7862517c65a819D10" as const;
+  "0x9a43697e2dCB101f43E22D7047f7bEB8bF865dFc" as const;
 
 export const PARTIO_ABI = [
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "usdcAddress",
+        type: "address",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "constructor",
+  },
+  {
+    inputs: [],
+    name: "InsufficientBalance",
+    type: "error",
+  },
   {
     inputs: [],
     name: "InvalidAmounts",
@@ -38,31 +54,6 @@ export const PARTIO_ABI = [
         type: "address",
       },
       {
-        indexed: false,
-        internalType: "uint256",
-        name: "totalAmount",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "recipientCount",
-        type: "uint256",
-      },
-    ],
-    name: "PaymentPartitioned",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "sender",
-        type: "address",
-      },
-      {
         indexed: true,
         internalType: "address",
         name: "recipient",
@@ -79,6 +70,31 @@ export const PARTIO_ABI = [
     type: "event",
   },
   {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "sender",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "totalAmount",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "recipientCount",
+        type: "uint256",
+      },
+    ],
+    name: "PaymentPartitioned",
+    type: "event",
+  },
+  {
     inputs: [
       {
         internalType: "address[]",
@@ -90,10 +106,28 @@ export const PARTIO_ABI = [
         name: "amounts",
         type: "uint256[]",
       },
+      {
+        internalType: "uint256",
+        name: "totalAmount",
+        type: "uint256",
+      },
     ],
     name: "partition",
     outputs: [],
-    stateMutability: "payable",
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "usdc",
+    outputs: [
+      {
+        internalType: "contract IERC20",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
     type: "function",
   },
 ] as const;

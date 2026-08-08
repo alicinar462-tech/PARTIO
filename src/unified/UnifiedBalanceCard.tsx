@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { createArcAdapter } from "./adapters/viem";
 import { depositUSDC } from "./deposit/deposit";
@@ -18,6 +18,16 @@ export default function UnifiedBalanceCard() {
 
   const [pending, setPending] =
     useState("0.000000");
+
+  const [depositAmount, setDepositAmount] =
+    useState("1.00");
+
+  const [spendAmount, setSpendAmount] =
+    useState("1.00");
+
+  useEffect(() => {
+    refreshBalance();
+  }, []);
 
   async function refreshBalance() {
     try {
@@ -48,12 +58,10 @@ export default function UnifiedBalanceCard() {
       const result =
         await depositUSDC(
           adapter,
-          "1.00"
+          depositAmount
         );
 
-      console.log(
-        "Deposit Result"
-      );
+      console.log("Deposit Result");
       console.log(result);
 
       await refreshBalance();
@@ -75,12 +83,10 @@ export default function UnifiedBalanceCard() {
         await spendUSDC(
           adapter,
           TEST_RECIPIENT,
-          "1.00"
+          spendAmount
         );
 
-      console.log(
-        "Spend Result"
-      );
+      console.log("Spend Result");
       console.log(result);
 
       await refreshBalance();
@@ -93,6 +99,7 @@ export default function UnifiedBalanceCard() {
 
   return (
     <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
+
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">
           Unified Balance
@@ -107,12 +114,13 @@ export default function UnifiedBalanceCard() {
       </div>
 
       <div className="mt-6 space-y-2">
+
         <div className="flex justify-between">
           <span className="text-neutral-400">
             Confirmed
           </span>
 
-          <span>
+          <span className="font-semibold">
             {confirmed} USDC
           </span>
         </div>
@@ -122,31 +130,65 @@ export default function UnifiedBalanceCard() {
             Pending
           </span>
 
-          <span>
+          <span className="font-semibold">
             {pending} USDC
           </span>
         </div>
+
       </div>
 
-      <button
-        onClick={handleDeposit}
-        disabled={loading}
-        className="mt-6 w-full rounded-lg bg-indigo-600 px-6 py-3 font-semibold hover:bg-indigo-700 disabled:opacity-50"
-      >
-        {loading
-          ? "Processing..."
-          : "Deposit 1.00 USDC"}
-      </button>
+      <div className="mt-8">
 
-      <button
-        onClick={handleSpend}
-        disabled={loading}
-        className="mt-3 w-full rounded-lg bg-green-600 px-6 py-3 font-semibold hover:bg-green-700 disabled:opacity-50"
-      >
-        {loading
-          ? "Processing..."
-          : "Spend 1.00 USDC"}
-      </button>
+        <label className="mb-2 block text-sm text-neutral-400">
+          Deposit Amount
+        </label>
+
+        <input
+          value={depositAmount}
+          onChange={(e) =>
+            setDepositAmount(e.target.value)
+          }
+          className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 outline-none focus:border-indigo-500"
+        />
+
+        <button
+          onClick={handleDeposit}
+          disabled={loading}
+          className="mt-3 w-full rounded-lg bg-indigo-600 px-6 py-3 font-semibold hover:bg-indigo-700 disabled:opacity-50"
+        >
+          {loading
+            ? "Processing..."
+            : `Deposit ${depositAmount} USDC`}
+        </button>
+
+      </div>
+
+      <div className="mt-8">
+
+        <label className="mb-2 block text-sm text-neutral-400">
+          Spend Amount
+        </label>
+
+        <input
+          value={spendAmount}
+          onChange={(e) =>
+            setSpendAmount(e.target.value)
+          }
+          className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 outline-none focus:border-green-500"
+        />
+
+        <button
+          onClick={handleSpend}
+          disabled={loading}
+          className="mt-3 w-full rounded-lg bg-green-600 px-6 py-3 font-semibold hover:bg-green-700 disabled:opacity-50"
+        >
+          {loading
+            ? "Processing..."
+            : `Spend ${spendAmount} USDC`}
+        </button>
+
+      </div>
+
     </div>
   );
 }
