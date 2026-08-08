@@ -2,10 +2,14 @@
 
 import { useEffect, useState } from "react";
 
-import { formatEther } from "viem";
+import {
+  formatUnits,
+  type Address,
+} from "viem";
 
 import {
   useAccount,
+  usePublicClient,
   useBalance,
   useConnect,
   useDisconnect,
@@ -29,37 +33,89 @@ import RecipientsPanel from "../recipients/RecipientsPanel";
 import WalletCard from "./WalletCard";
 
 import UnifiedBalanceCard from "@/src/unified/UnifiedBalanceCard";
+import { createArcAdapter } from "@/src/unified/adapters/viem";
+import { getUnifiedBalances } from "@/src/unified/gateway/balances";
 
 import SummaryCard from "../payment/SummaryCard";
 import ReviewModal from "../payment/ReviewModal";
 
 const GAS_BUFFER = 0.01;
 
+const USDC_ADDRESS =
+  "0x3600000000000000000000000000000000000000" as const;
+
+const USDC_ABI = [
+  {
+    type: "function",
+    name: "balanceOf",
+    stateMutability: "view",
+    inputs: [
+      {
+        name: "account",
+        type: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "balance",
+        type: "uint256",
+      },
+    ],
+  },
+] as const;
+
 export default function ConnectWallet() {
-  const [mounted, setMounted] = useState(false);
-  const [reviewOpen, setReviewOpen] = useState(false);
+  const [mounted, setMounted] =
+    useState(false);
+
+  const [reviewOpen, setReviewOpen] =
+    useState(false);
+
+  const [
+    confirmedDeposit,
+    setConfirmedDeposit,
+  ] = useState(0);
+
+  const [
+    balanceRefreshing,
+    setBalanceRefreshing,
+  ] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const { address, chainId, isConnected } =
-    useAccount();
+  const {
+    address,
+    chainId,
+    isConnected,
+  } = useAccount();
 
-  const { data: balanceData } = useBalance({
+  const publicClient =
+    usePublicClient();
+
+  const {
+    data: balanceData,
+  } = useBalance({
     address,
   });
 
-  const availableBalance = Number(
-    formatEther(balanceData?.value ?? 0n)
-  );
+  const walletNativeBalance =
+    Number(
+      formatUnits(
+        balanceData?.value ?? 0n,
+        balanceData?.decimals ?? 18
+      )
+    );
 
   const {
     connect,
     isPending: isConnecting,
   } = useConnect();
 
-  const { disconnect } = useDisconnect();
+  const {
+    disconnect,
+  } = useDisconnect();
 
   const {
     switchChain,
@@ -90,25 +146,91 @@ export default function ConnectWallet() {
     isConfirmed,
     txHash,
     writeError,
-  } = usePartition(recipients);
+  } = usePartition(
+    recipients
+  );
+
+  async function refreshUnifiedBalance() {
+    try {
+      setBalanceRefreshing(true);
+
+      const adapter =
+        await createArcAdapter();
+
+      const balance =
+        await getUnifiedBalances(
+          adapter
+        );
+
+      setConfirmedDeposit(
+        Number(
+          balance.totalConfirmedBalance ??
+            "0"
+        )
+      );
+    } catch (error) {
+      console.error(
+        "Unified Balance Refresh Error",
+        error
+      );
+    } finally {
+      setBalanceRefreshing(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!mounted || !isConnected) {
+      return;
+    }
+
+    refreshUnifiedBalance();
+
+    const interval =
+      setInterval(
+        refreshUnifiedBalance,
+        15000
+      );
+
+    return () =>
+      clearInterval(interval);
+  }, [
+    mounted,
+    isConnected,
+    address,
+  ]);
+
+  const walletBalance =
+    walletNativeBalance;
+
+  const availableBalance =
+    walletBalance +
+    confirmedDeposit;
 
   const remainingBalance =
-    availableBalance - totalAmount;
+    availableBalance -
+    totalAmount -
+    GAS_BUFFER;
 
-  const missingAmount = Math.max(
-    totalAmount - availableBalance,
-    0
-  );
+  const missingAmount =
+    Math.max(
+      totalAmount +
+        GAS_BUFFER -
+        availableBalance,
+      0
+    );
 
   const hasEnoughBalance =
     availableBalance >=
-    totalAmount + GAS_BUFFER;
+    totalAmount +
+      GAS_BUFFER;
 
   function handleDeleteContact(
     contact: Contact
   ) {
     handleDelete(contact);
-    handleRemoveRecipient(contact.id);
+    handleRemoveRecipient(
+      contact.id
+    );
   }
 
   function handleNewPayment() {
@@ -117,7 +239,9 @@ export default function ConnectWallet() {
     setReviewOpen(false);
   }
 
-  if (!mounted) return null;
+  if (!mounted) {
+    return null;
+  }
 
   if (!isConnected) {
     return (
@@ -127,7 +251,9 @@ export default function ConnectWallet() {
             connector: injected(),
           })
         }
-        disabled={isConnecting}
+        disabled={
+          isConnecting
+        }
         className="rounded-lg bg-white px-6 py-3 font-semibold text-black hover:bg-gray-200"
       >
         {isConnecting
@@ -138,132 +264,157 @@ export default function ConnectWallet() {
   }
 
   const isCorrectNetwork =
-    chainId === arcTestnet.id;
+    chainId ===
+    arcTestnet.id;
 
   return (
     <>
-      <div className="w-full space-y-8">
-        <WalletCard
-          address={address}
-          chainId={chainId}
-          availableBalance={
-            availableBalance
-          }
-          isSwitching={isSwitching}
-          onSwitchNetwork={() =>
-            switchChain({
-              chainId:
-                arcTestnet.id,
-            })
-          }
-          onDisconnect={() =>
-            disconnect()
-          }
-        />
+      <WalletCard
+        address={address}
+        chainId={chainId}
+        availableBalance={
+          availableBalance
+        }
+        isSwitching={
+          isSwitching
+        }
+        onSwitchNetwork={() =>
+          switchChain({
+            chainId:
+              arcTestnet.id,
+          })
+        }
+        onDisconnect={() =>
+          disconnect()
+        }
+      />
 
-        {/* Unified Balance HER ZAMAN görünür */}
-        <UnifiedBalanceCard />
+      <UnifiedBalanceCard />
 
-        {/* Sadece PARTIO ödeme ekranı ARC'da görünür */}
-        {isCorrectNetwork && (
-          <>
-            <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-white">
-                  Add New Contact
-                </h2>
+      {isCorrectNetwork && (
+        <>
+          <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-white">
+                Add New Contact
+              </h2>
 
-                <p className="mt-1 text-sm text-neutral-400">
-                  Save wallet addresses
-                  for future payment
-                  partitions.
-                </p>
-              </div>
-
-              <ContactForm
-                onCreate={
-                  handleCreate
-                }
-              />
+              <p className="mt-1 text-sm text-neutral-400">
+                Save wallet addresses
+                for future payment
+                partitions.
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-              <ContactsPanel
-                contacts={contacts}
-                recipientIds={recipients.map(
-                  (
-                    recipient
-                  ) =>
-                    recipient.id
-                )}
-                onDelete={
-                  handleDeleteContact
-                }
-                onAddRecipient={
-                  handleAddRecipient
-                }
-              />
-
-              <RecipientsPanel
-                recipients={
-                  recipients
-                }
-                onAmountChange={
-                  handleAmountChange
-                }
-                onRemove={
-                  handleRemoveRecipient
-                }
-              />
-            </div>
-
-            <SummaryCard
-              recipientCount={
-                recipients.length
-              }
-              totalAmount={
-                totalAmount
-              }
-              availableBalance={
-                availableBalance
-              }
-              remainingBalance={
-                remainingBalance
-              }
-              missingAmount={
-                missingAmount
-              }
-              hasEnoughBalance={
-                hasEnoughBalance
-              }
-              hasValidAmounts={
-                hasValidAmounts
-              }
-              onReview={() =>
-                setReviewOpen(true)
+            <ContactForm
+              onCreate={
+                handleCreate
               }
             />
-          </>
-        )}
-      </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <ContactsPanel
+              contacts={
+                contacts
+              }
+              recipientIds={recipients.map(
+                (
+                  recipient
+                ) =>
+                  recipient.id
+              )}
+              onDelete={
+                handleDeleteContact
+              }
+              onAddRecipient={
+                handleAddRecipient
+              }
+            />
+
+            <RecipientsPanel
+              recipients={
+                recipients
+              }
+              onAmountChange={
+                handleAmountChange
+              }
+              onRemove={
+                handleRemoveRecipient
+              }
+            />
+          </div>
+
+          <SummaryCard
+            recipientCount={
+              recipients.length
+            }
+            totalAmount={
+              totalAmount
+            }
+            availableBalance={
+              availableBalance
+            }
+            remainingBalance={
+              remainingBalance
+            }
+            missingAmount={
+              missingAmount
+            }
+            hasEnoughBalance={
+              hasEnoughBalance
+            }
+            hasValidAmounts={
+              hasValidAmounts
+            }
+            onReview={() =>
+              setReviewOpen(
+                true
+              )
+            }
+          />
+
+          {balanceRefreshing && (
+            <p className="mt-2 text-center text-xs text-neutral-500">
+              Updating balance...
+            </p>
+          )}
+        </>
+      )}
 
       <ReviewModal
-        open={reviewOpen}
-        recipients={recipients}
-        totalAmount={totalAmount}
-        isWriting={isWriting}
+        open={
+          reviewOpen
+        }
+        recipients={
+          recipients
+        }
+        totalAmount={
+          totalAmount
+        }
+        isWriting={
+          isWriting
+        }
         isConfirming={
           isConfirming
         }
         isConfirmed={
           isConfirmed
         }
-        txHash={txHash}
-        writeError={writeError}
-        onClose={() =>
-          setReviewOpen(false)
+        txHash={
+          txHash
         }
-        onConfirm={partition}
+        writeError={
+          writeError
+        }
+        onClose={() =>
+          setReviewOpen(
+            false
+          )
+        }
+        onConfirm={
+          partition
+        }
         onNewPayment={
           handleNewPayment
         }
