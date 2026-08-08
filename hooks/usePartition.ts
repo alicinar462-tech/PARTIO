@@ -76,7 +76,9 @@ const USDC_ABI = [
 
 const MICRO_USDC = 1n;
 
-function getReadableError(error: unknown): Error {
+function getReadableError(
+  error: unknown
+): Error {
   const message =
     error instanceof Error
       ? error.message.toLowerCase()
@@ -145,8 +147,10 @@ export function usePartition(
     writeContractAsync,
   } = useWriteContract();
 
-  const [isWriting, setIsWriting] =
-    useState(false);
+  const [
+    isWriting,
+    setIsWriting,
+  ] = useState(false);
 
   const [
     isConfirming,
@@ -158,26 +162,26 @@ export function usePartition(
     setIsConfirmed,
   ] = useState(false);
 
-  const [txHash, setTxHash] =
-    useState<`0x${string}` | null>(
-      null
-    );
+  const [
+    txHash,
+    setTxHash,
+  ] = useState<
+    `0x${string}` | null
+  >(null);
 
   const [
     receipt,
     setReceipt,
-  ] =
-    useState<TransactionReceipt | null>(
-      null
-    );
+  ] = useState<
+    TransactionReceipt | null
+  >(null);
 
   const [
     writeError,
     setWriteError,
-  ] =
-    useState<Error | null>(
-      null
-    );
+  ] = useState<
+    Error | null
+  >(null);
 
   async function getWalletUSDCBalance(
     walletAddress: Address
@@ -218,11 +222,6 @@ export function usePartition(
       );
 
     try {
-      console.log(
-        "Estimating Unified amount:",
-        amount
-      );
-
       await kit.unifiedBalance.estimateSpend({
         amount,
         token: "USDC",
@@ -237,20 +236,8 @@ export function usePartition(
         },
       });
 
-      console.log(
-        "Unified amount accepted:",
-        amount
-      );
-
       return true;
-    } catch (error) {
-      console.log(
-        "Unified amount rejected:",
-        amount
-      );
-
-      console.log(error);
-
+    } catch {
       return false;
     }
   }
@@ -266,11 +253,8 @@ export function usePartition(
     }
 
     let low = 0n;
-    let high = maxAmountUnits;
-
-    console.log(
-      "Finding maximum Unified spendable amount..."
-    );
+    let high =
+      maxAmountUnits;
 
     while (
       low < high
@@ -313,21 +297,11 @@ export function usePartition(
       }
     }
 
-    console.log(
-      "Maximum Unified spend:",
-      formatUnits(
-        low,
-        6
-      )
-    );
-
     return low;
   }
 
   async function partition() {
     try {
-      console.clear();
-
       setWriteError(null);
       setIsWriting(false);
       setIsConfirming(false);
@@ -340,10 +314,6 @@ export function usePartition(
           "Wallet is not connected."
         );
       }
-
-      console.log(
-        "Preparing Payment"
-      );
 
       const validRecipients =
         recipients.filter(
@@ -386,41 +356,6 @@ export function usePartition(
           0n
         );
 
-      const totalAmount =
-        formatUnits(
-          totalAmountUnits,
-          6
-        );
-
-      console.log(
-        "================================"
-      );
-
-      console.log(
-        "PARTIO PAYMENT"
-      );
-
-      console.log(
-        "Total:",
-        totalAmount,
-        "USDC"
-      );
-
-      console.log(
-        "================================"
-      );
-
-      /*
-       * ---------------------------------------------------------
-       * STEP 1
-       * Read Unified Balance
-       * ---------------------------------------------------------
-       */
-
-      console.log(
-        "Step 1 - Reading Unified Balance"
-      );
-
       const adapter =
         await createArcAdapter();
 
@@ -431,30 +366,11 @@ export function usePartition(
 
       const confirmedUnifiedBalance =
         parseUnits(
-          unifiedBalance.totalConfirmedBalance ??
+          unifiedBalance
+            .totalConfirmedBalance ??
             "0",
           6
         );
-
-      console.log(
-        "Confirmed Unified Balance:",
-        formatUnits(
-          confirmedUnifiedBalance,
-          6
-        )
-      );
-
-      console.log(
-        "Pending Unified Balance:",
-        unifiedBalance.totalPendingBalance
-      );
-
-      /*
-       * ---------------------------------------------------------
-       * STEP 2
-       * Determine maximum amount Unified can actually spend
-       * ---------------------------------------------------------
-       */
 
       const unifiedCandidate =
         confirmedUnifiedBalance >
@@ -467,10 +383,6 @@ export function usePartition(
       if (
         unifiedCandidate > 0n
       ) {
-        console.log(
-          "Step 2 - Finding Unified Spend Capacity"
-        );
-
         unifiedAmount =
           await findMaxUnifiedSpend(
             adapter,
@@ -478,69 +390,17 @@ export function usePartition(
           );
       }
 
-      /*
-       * ---------------------------------------------------------
-       * STEP 3
-       * Remaining amount must come from ARC wallet
-       * ---------------------------------------------------------
-       */
-
       const walletAmount =
         totalAmountUnits -
         unifiedAmount;
 
-      console.log(
-        "--------------------------------"
-      );
-
-      console.log(
-        "Unified Amount:",
-        formatUnits(
-          unifiedAmount,
-          6
-        ),
-        "USDC"
-      );
-
-      console.log(
-        "Wallet Amount:",
-        formatUnits(
-          walletAmount,
-          6
-        ),
-        "USDC"
-      );
-
-      console.log(
-        "--------------------------------"
-      );
-
-      /*
-       * ---------------------------------------------------------
-       * STEP 4
-       * Verify ARC wallet fallback
-       * ---------------------------------------------------------
-       */
-
       if (
         walletAmount > 0n
       ) {
-        console.log(
-          "Step 3 - Checking ARC Wallet USDC"
-        );
-
         const walletBalance =
           await getWalletUSDCBalance(
             address
           );
-
-        console.log(
-          "ARC Wallet USDC:",
-          formatUnits(
-            walletBalance,
-            6
-          )
-        );
 
         if (
           walletBalance <
@@ -555,65 +415,26 @@ export function usePartition(
         }
       }
 
-      /*
-       * ---------------------------------------------------------
-       * STEP 5
-       * Execute Unified Balance spend
-       * ---------------------------------------------------------
-       */
-
       if (
         unifiedAmount > 0n
       ) {
-        console.log(
-          "Step 4 - Spending Unified Balance"
-        );
+        setIsWriting(true);
 
-        const unifiedSpendAmount =
+        await spendUSDC(
+          adapter,
+          PARTIO_ADDRESS,
           formatUnits(
             unifiedAmount,
             6
-          );
-
-        console.log(
-          "Unified spend amount:",
-          unifiedSpendAmount
+          )
         );
 
-        const spendResult =
-          await spendUSDC(
-            adapter,
-            PARTIO_ADDRESS,
-            unifiedSpendAmount
-          );
-
-        console.log(
-          "Unified Spend Complete"
-        );
-
-        console.log(
-          spendResult
-        );
-      } else {
-        console.log(
-          "Step 4 - No Unified Balance used"
-        );
+        setIsWriting(false);
       }
-
-      /*
-       * ---------------------------------------------------------
-       * STEP 6
-       * Transfer remaining amount from ARC wallet
-       * ---------------------------------------------------------
-       */
 
       if (
         walletAmount > 0n
       ) {
-        console.log(
-          "Step 5 - ARC Wallet Fallback"
-        );
-
         setIsWriting(true);
 
         const walletTransferHash =
@@ -630,23 +451,11 @@ export function usePartition(
             ],
           });
 
-        console.log(
-          "ARC Wallet Transfer Submitted"
-        );
-
-        console.log(
-          walletTransferHash
-        );
-
         if (!publicClient) {
           throw new Error(
             "Unable to connect to ARC Testnet."
           );
         }
-
-        console.log(
-          "Waiting for ARC Wallet Transfer"
-        );
 
         await publicClient.waitForTransactionReceipt(
           {
@@ -655,27 +464,8 @@ export function usePartition(
           }
         );
 
-        console.log(
-          "ARC Wallet Transfer Confirmed"
-        );
-
         setIsWriting(false);
-      } else {
-        console.log(
-          "Step 5 - No ARC Wallet Fallback Needed"
-        );
       }
-
-      /*
-       * ---------------------------------------------------------
-       * STEP 7
-       * Execute Partio partition
-       * ---------------------------------------------------------
-       */
-
-      console.log(
-        "Step 6 - Execute Partition"
-      );
 
       setIsWriting(true);
 
@@ -694,12 +484,6 @@ export function usePartition(
           ],
         });
 
-      console.log(
-        "Partition Submitted"
-      );
-
-      console.log(hash);
-
       setTxHash(hash);
 
       setIsWriting(false);
@@ -711,10 +495,6 @@ export function usePartition(
         );
       }
 
-      console.log(
-        "Waiting for Partition Receipt"
-      );
-
       const txReceipt =
         await publicClient.waitForTransactionReceipt(
           {
@@ -722,39 +502,13 @@ export function usePartition(
           }
         );
 
-      console.log(
-        "Partition Confirmed"
-      );
-
-      console.log(
-        txReceipt
-      );
-
       setReceipt(
         txReceipt
       );
 
       setIsConfirming(false);
       setIsConfirmed(true);
-
-      console.log(
-        "================================"
-      );
-
-      console.log(
-        "PAYMENT COMPLETED"
-      );
-
-      console.log(
-        "================================"
-      );
     } catch (error) {
-      console.error(
-        "Partition Error"
-      );
-
-      console.error(error);
-
       setIsWriting(false);
       setIsConfirming(false);
       setIsConfirmed(false);
