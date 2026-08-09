@@ -289,11 +289,13 @@ export default function ConnectWallet() {
         }
       />
 
-      <UnifiedBalanceCard />
+      <div className="mt-2">
+        <UnifiedBalanceCard />
+      </div>
 
       {isCorrectNetwork && (
         <>
-          <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
+          <div className="mt-2 rounded-2xl border border-neutral-800 bg-neutral-900 p-6 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-white">
                 Add New Contact
@@ -313,7 +315,7 @@ export default function ConnectWallet() {
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div className="mt-2 grid grid-cols-1 gap-6 xl:grid-cols-2">
             <ContactsPanel
               contacts={
                 contacts
@@ -345,34 +347,36 @@ export default function ConnectWallet() {
             />
           </div>
 
-          <SummaryCard
-            recipientCount={
-              recipients.length
-            }
-            totalAmount={
-              totalAmount
-            }
-            availableBalance={
-              availableBalance
-            }
-            remainingBalance={
-              remainingBalance
-            }
-            missingAmount={
-              missingAmount
-            }
-            hasEnoughBalance={
-              hasEnoughBalance
-            }
-            hasValidAmounts={
-              hasValidAmounts
-            }
-            onReview={() =>
-              setReviewOpen(
-                true
-              )
-            }
-          />
+          <div className="mt-2">
+            <SummaryCard
+              recipientCount={
+                recipients.length
+              }
+              totalAmount={
+                totalAmount
+              }
+              availableBalance={
+                availableBalance
+              }
+              remainingBalance={
+                remainingBalance
+              }
+              missingAmount={
+                missingAmount
+              }
+              hasEnoughBalance={
+                hasEnoughBalance
+              }
+              hasValidAmounts={
+                hasValidAmounts
+              }
+              onReview={() =>
+                setReviewOpen(
+                  true
+                )
+              }
+            />
+          </div>
 
           {balanceRefreshing && (
             <p className="mt-2 text-center text-xs text-neutral-500">

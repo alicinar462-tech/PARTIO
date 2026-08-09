@@ -1,26 +1,90 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #050505;
+  --foreground: #f5f7ff;
+
+  --partio-blue: #536dff;
+  --partio-cyan: #20d9ff;
+  --partio-purple: #9b5cff;
+
+  --partio-success: #00e889;
+  --partio-danger: #ff5c67;
+  --partio-muted: #8c94ad;
+
+  --partio-card: #080d2d;
+  --partio-card-border: rgba(83, 109, 255, 0.28);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  min-height: 100%;
+  background: var(--background);
 }
 
 body {
-  background: var(--background);
+  min-height: 100vh;
+  margin: 0;
+
+  background:
+    radial-gradient(
+      circle at 50% -10%,
+      rgba(50, 72, 180, 0.18),
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at 0% 100%,
+      rgba(108, 43, 180, 0.12),
+      transparent 32%
+    ),
+    var(--background);
+
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+
+  font-family:
+    "Trebuchet MS",
+    "Segoe UI",
+    Arial,
+    Helvetica,
+    sans-serif;
+
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+.partio-card {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(15, 23, 65, 0.98),
+      rgba(7, 12, 42, 0.98)
+    );
+
+  border: 1px solid var(--partio-card-border);
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.025),
+    0 10px 35px rgba(0, 0, 0, 0.28);
+}
+
+.partio-label {
+  color: #8c94ad;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }

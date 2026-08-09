@@ -26,64 +26,88 @@ export default function WalletCard({
     chainId === arcTestnet.id;
 
   return (
-    <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-white">
-            Connected Wallet
-          </h2>
+    <div className="partio-card rounded-2xl p-5 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
+      {/* Section label */}
+      <div className="flex items-center gap-3">
+        <div className="h-2.5 w-2.5 rounded-full bg-cyan-400 shadow-[0_0_14px_rgba(32,217,255,0.8)]" />
 
-          <p className="mt-1 text-sm text-neutral-400">
-            Ready to send payments on ARC Network.
-          </p>
-        </div>
+        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+          Connected Wallet
+        </span>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-6">
-        <div className="space-y-5">
-          <div>
-            <p className="mb-1 text-xs uppercase tracking-wide text-neutral-500">
-              Wallet Address
-            </p>
+      {/* Centered heading */}
+      <div className="mt-3 text-center">
+        <h2 className="text-2xl font-bold tracking-tight text-white">
+          Ready to send payments
+        </h2>
 
-            <WalletAddress address={address} />
-          </div>
+        <p className="mt-1 text-sm text-slate-400">
+          Send one payment to multiple recipients on ARC.
+        </p>
+      </div>
 
-          <div>
-            <p className="mb-1 text-xs uppercase tracking-wide text-neutral-500">
-              Available Balance
-            </p>
+      {/* Wallet information */}
+      <div className="mt-5 grid gap-3 lg:grid-cols-[1.4fr_1fr_0.8fr_auto]">
+        {/* Wallet Address */}
+        <div className="rounded-xl border border-indigo-400/15 bg-[#080d2d]/80 p-4">
+          <p className="partio-label mb-2">
+            Wallet Address
+          </p>
 
-            <p className="text-2xl font-bold text-green-400">
-              {availableBalance.toFixed(2)} USDC
-            </p>
-          </div>
-
-          <NetworkBadge
-            chainId={chainId}
-            expectedChainId={arcTestnet.id}
-          />
+          <WalletAddress address={address} />
         </div>
 
-        <div className="flex gap-3">
-          {!isCorrectNetwork && (
-            <button
-              onClick={onSwitchNetwork}
-              disabled={isSwitching}
-              className="rounded-lg bg-yellow-500 px-4 py-2 font-semibold text-black transition hover:bg-yellow-400 disabled:opacity-50"
-            >
-              {isSwitching
-                ? "Switching..."
-                : "Switch to ARC"}
-            </button>
-          )}
+        {/* Available Balance */}
+        <div className="rounded-xl border border-indigo-400/15 bg-[#080d2d]/80 p-4">
+          <p className="partio-label mb-2">
+            Available Balance
+          </p>
 
-          <button
-            onClick={onDisconnect}
-            className="rounded-lg bg-neutral-800 px-4 py-2 font-medium text-white transition hover:bg-neutral-700"
-          >
-            Disconnect
-          </button>
+          <p className="text-2xl font-bold tracking-tight text-emerald-400">
+            {availableBalance.toFixed(2)}{" "}
+            <span className="text-base text-emerald-300/80">
+              USDC
+            </span>
+          </p>
+        </div>
+
+        {/* Network */}
+        <div className="flex items-center rounded-xl border border-indigo-400/15 bg-[#080d2d]/80 p-4">
+          <div>
+            <p className="partio-label mb-2">
+              Network
+            </p>
+
+            <NetworkBadge
+              chainId={chainId}
+              expectedChainId={arcTestnet.id}
+            />
+          </div>
+        </div>
+
+        {/* Disconnect / Switch */}
+        <div className="flex items-center justify-end rounded-xl border border-indigo-400/15 bg-[#080d2d]/80 p-4">
+          <div className="flex flex-wrap justify-end gap-2">
+            {!isCorrectNetwork && (
+              <button
+                onClick={onSwitchNetwork}
+                disabled={isSwitching}
+                className="rounded-lg bg-amber-400 px-4 py-2.5 font-semibold text-black transition hover:bg-amber-300 disabled:opacity-50"
+              >
+                {isSwitching
+                  ? "Switching..."
+                  : "Switch to ARC"}
+              </button>
+            )}
+
+            <button
+              onClick={onDisconnect}
+              className="rounded-lg border border-slate-700 bg-slate-900/70 px-4 py-2.5 font-medium text-white transition hover:border-slate-500 hover:bg-slate-800"
+            >
+              Disconnect
+            </button>
+          </div>
         </div>
       </div>
     </div>
