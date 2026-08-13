@@ -76,6 +76,24 @@ const USDC_ABI = [
 
 const MICRO_USDC = 1n;
 
+/*
+ * When the full Unified Balance amount is not spendable,
+ * we do not run a 20-25 step binary search anymore.
+ *
+ * Instead we try a small number of practical safety
+ * reserves. This keeps the number of estimateSpend calls
+ * very low while still finding a usable Unified amount.
+ */
+const UNIFIED_RESERVES = [
+  10_000n,   // 0.010000 USDC
+  20_000n,   // 0.020000 USDC
+  50_000n,   // 0.050000 USDC
+  100_000n,  // 0.100000 USDC
+  250_000n,  // 0.250000 USDC
+  500_000n,  // 0.500000 USDC
+  1_000_000n, // 1.000000 USDC
+] as const;
+
 function getReadableError(
   error: unknown
 ): Error {
@@ -195,10 +213,13 @@ export function usePartition(
     return await publicClient.readContract({
       address:
         USDC_ADDRESS,
+
       abi:
         USDC_ABI,
+
       functionName:
         "balanceOf",
+
       args: [
         walletAddress,
       ],
@@ -224,13 +245,20 @@ export function usePartition(
     try {
       await kit.unifiedBalance.estimateSpend({
         amount,
-        token: "USDC",
+
+        token:
+          "USDC",
+
         from: {
           adapter,
         },
+
         to: {
           adapter,
-          chain: "Arc_Testnet",
+
+          chain:
+            "Arc_Testnet",
+
           recipientAddress:
             PARTIO_ADDRESS,
         },
@@ -252,62 +280,394 @@ export function usePartition(
       return 0n;
     }
 
-    let low = 0n;
-    let high =
-      maxAmountUnits;
+    console.time(
+      "[PARTIO] findMaxUnifiedSpend"
+    );
 
-    while (
-      low < high
+    let estimateCount = 0;
+
+    /*
+     * --------------------------------------------------
+     * STEP 1
+     * Try the complete Unified Balance amount.
+     *
+     * This is the fastest and most common path.
+     * --------------------------------------------------
+     */
+
+    estimateCount++;
+
+    console.time(
+      `[PARTIO] estimateSpend #${estimateCount} direct`
+    );
+
+    const directCanSpend =
+      await canSpendUnifiedAmount(
+        adapter,
+        maxAmountUnits
+      );
+
+    console.timeEnd(
+      `[PARTIO] estimateSpend #${estimateCount} direct`
+    );
+
+    console.log(
+      `[PARTIO] direct estimate result:`,
+      {
+        amount:
+          formatUnits(
+            maxAmountUnits,
+            6
+          ),
+
+        canSpend:
+          directCanSpend,
+      }
+    );
+
+    if (
+      directCanSpend
     ) {
-      const mid =
-        low +
-        (high - low + 1n) /
-          2n;
+      console.log(
+        "[PARTIO] Full Unified amount is spendable. No fallback required."
+      );
+
+      console.log(
+        "[PARTIO] findMaxUnifiedSpend summary:",
+        {
+          requested:
+            formatUnits(
+              maxAmountUnits,
+              6
+            ),
+
+          result:
+            formatUnits(
+              maxAmountUnits,
+              6
+            ),
+
+          estimateCount,
+
+          fallbackUsed:
+            false,
+        }
+      );
+
+      console.timeEnd(
+        "[PARTIO] findMaxUnifiedSpend"
+      );
+
+      return maxAmountUnits;
+    }
+
+    /*
+     * --------------------------------------------------
+     * STEP 2
+     *
+     * Full amount is not spendable.
+     *
+     * Instead of running the old binary search, try
+     * progressively larger safety reserves.
+     *
+     * Example:
+     *
+     * 16.992001
+     *
+     * -> 16.982001
+     * -> 16.972001
+     * -> 16.942001
+     * -> ...
+     *
+     * The first successful amount is used.
+     * --------------------------------------------------
+     */
+
+    console.log(
+      "[PARTIO] Full Unified amount is not spendable. Starting fast reserve search..."
+    );
+
+    for (
+      const reserve of
+        UNIFIED_RESERVES
+    ) {
+      if (
+        reserve >=
+        maxAmountUnits
+      ) {
+        continue;
+      }
+
+      const candidate =
+        maxAmountUnits -
+        reserve;
+
+      if (
+        candidate <= 0n
+      ) {
+        continue;
+      }
+
+      estimateCount++;
+
+      console.time(
+        `[PARTIO] estimateSpend #${estimateCount} reserve`
+      );
 
       const canSpend =
         await canSpendUnifiedAmount(
           adapter,
-          mid
+          candidate
         );
 
-      if (canSpend) {
-        low = mid;
-      } else {
-        high =
-          mid - 1n;
+      console.timeEnd(
+        `[PARTIO] estimateSpend #${estimateCount} reserve`
+      );
+
+      console.log(
+        `[PARTIO] estimateSpend #${estimateCount} result:`,
+        {
+          amount:
+            formatUnits(
+              candidate,
+              6
+            ),
+
+          reserve:
+            formatUnits(
+              reserve,
+              6
+            ),
+
+          canSpend,
+        }
+      );
+
+      if (
+        canSpend
+      ) {
+        console.log(
+          "[PARTIO] Fast Unified amount found:",
+          formatUnits(
+            candidate,
+            6
+          ),
+          "USDC"
+        );
+
+        console.log(
+          "[PARTIO] findMaxUnifiedSpend summary:",
+          {
+            requested:
+              formatUnits(
+                maxAmountUnits,
+                6
+              ),
+
+            result:
+              formatUnits(
+                candidate,
+                6
+              ),
+
+            reserve:
+              formatUnits(
+                reserve,
+                6
+              ),
+
+            estimateCount,
+
+            fallbackUsed:
+              true,
+          }
+        );
+
+        console.timeEnd(
+          "[PARTIO] findMaxUnifiedSpend"
+        );
+
+        return candidate;
       }
     }
+
+    /*
+     * --------------------------------------------------
+     * STEP 3
+     *
+     * If none of the normal reserves worked, use a
+     * conservative fallback.
+     *
+     * We intentionally keep this rare. It protects the
+     * payment flow without bringing back the old
+     * 20-25 request binary search.
+     * --------------------------------------------------
+     */
+
+    const fallbackReserve =
+      2_000_000n;
 
     if (
-      low > 0n &&
-      low < maxAmountUnits
+      maxAmountUnits >
+      fallbackReserve
     ) {
-      const exactCheck =
+      const fallbackAmount =
+        maxAmountUnits -
+        fallbackReserve;
+
+      estimateCount++;
+
+      console.time(
+        `[PARTIO] estimateSpend #${estimateCount} fallback`
+      );
+
+      const fallbackCanSpend =
         await canSpendUnifiedAmount(
           adapter,
-          low
+          fallbackAmount
         );
 
-      if (!exactCheck) {
-        low =
-          low > MICRO_USDC
-            ? low -
-              MICRO_USDC
-            : 0n;
+      console.timeEnd(
+        `[PARTIO] estimateSpend #${estimateCount} fallback`
+      );
+
+      console.log(
+        `[PARTIO] fallback estimate result:`,
+        {
+          amount:
+            formatUnits(
+              fallbackAmount,
+              6
+            ),
+
+          reserve:
+            formatUnits(
+              fallbackReserve,
+              6
+            ),
+
+          canSpend:
+            fallbackCanSpend,
+        }
+      );
+
+      if (
+        fallbackCanSpend
+      ) {
+        console.log(
+          "[PARTIO] Conservative Unified amount selected:",
+          formatUnits(
+            fallbackAmount,
+            6
+          ),
+          "USDC"
+        );
+
+        console.log(
+          "[PARTIO] findMaxUnifiedSpend summary:",
+          {
+            requested:
+              formatUnits(
+                maxAmountUnits,
+                6
+              ),
+
+            result:
+              formatUnits(
+                fallbackAmount,
+                6
+              ),
+
+            reserve:
+              formatUnits(
+                fallbackReserve,
+                6
+              ),
+
+            estimateCount,
+
+            fallbackUsed:
+              true,
+
+            conservativeFallback:
+              true,
+          }
+        );
+
+        console.timeEnd(
+          "[PARTIO] findMaxUnifiedSpend"
+        );
+
+        return fallbackAmount;
       }
     }
 
-    return low;
+    /*
+     * Nothing could be estimated successfully.
+     * Returning zero means the complete payment will
+     * fall back to the connected wallet balance.
+     */
+
+    console.log(
+      "[PARTIO] Unified Balance could not find a spendable amount."
+    );
+
+    console.log(
+      "[PARTIO] findMaxUnifiedSpend summary:",
+      {
+        requested:
+          formatUnits(
+            maxAmountUnits,
+            6
+          ),
+
+        result:
+          "0",
+
+        estimateCount,
+
+        fallbackUsed:
+          true,
+
+        unifiedFallbackToWallet:
+          true,
+      }
+    );
+
+    console.timeEnd(
+      "[PARTIO] findMaxUnifiedSpend"
+    );
+
+    return 0n;
   }
 
   async function partition() {
+    console.clear();
+
+    console.log(
+      "========== PARTIO PAYMENT START =========="
+    );
+
+    console.time(
+      "[PARTIO] TOTAL partition()"
+    );
+
     try {
       setWriteError(null);
+
       setIsWriting(false);
+
       setIsConfirming(false);
+
       setIsConfirmed(false);
+
       setTxHash(null);
+
       setReceipt(null);
+
+      console.time(
+        "[PARTIO] Validation"
+      );
 
       if (!address) {
         throw new Error(
@@ -356,13 +716,59 @@ export function usePartition(
           0n
         );
 
+      console.timeEnd(
+        "[PARTIO] Validation"
+      );
+
+      console.log(
+        "[PARTIO] Payment amount:",
+        formatUnits(
+          totalAmountUnits,
+          6
+        ),
+        "USDC"
+      );
+
+      /*
+       * --------------------------------------------------
+       * Create Circle adapter
+       * --------------------------------------------------
+       */
+
+      console.time(
+        "[PARTIO] createArcAdapter"
+      );
+
       const adapter =
         await createArcAdapter();
+
+      console.timeEnd(
+        "[PARTIO] createArcAdapter"
+      );
+
+      /*
+       * --------------------------------------------------
+       * Read Unified Balance
+       * --------------------------------------------------
+       */
+
+      console.time(
+        "[PARTIO] getUnifiedBalances"
+      );
 
       const unifiedBalance =
         await getUnifiedBalances(
           adapter
         );
+
+      console.timeEnd(
+        "[PARTIO] getUnifiedBalances"
+      );
+
+      console.log(
+        "[PARTIO] Unified Balance:",
+        unifiedBalance
+      );
 
       const confirmedUnifiedBalance =
         parseUnits(
@@ -378,7 +784,23 @@ export function usePartition(
           ? totalAmountUnits
           : confirmedUnifiedBalance;
 
-      let unifiedAmount = 0n;
+      console.log(
+        "[PARTIO] Unified candidate:",
+        formatUnits(
+          unifiedCandidate,
+          6
+        ),
+        "USDC"
+      );
+
+      /*
+       * --------------------------------------------------
+       * Find usable Unified Balance amount
+       * --------------------------------------------------
+       */
+
+      let unifiedAmount =
+        0n;
 
       if (
         unifiedCandidate > 0n
@@ -390,17 +812,64 @@ export function usePartition(
           );
       }
 
+      console.log(
+        "[PARTIO] Final Unified amount:",
+        formatUnits(
+          unifiedAmount,
+          6
+        ),
+        "USDC"
+      );
+
+      /*
+       * --------------------------------------------------
+       * Remaining amount comes from wallet
+       * --------------------------------------------------
+       */
+
       const walletAmount =
         totalAmountUnits -
         unifiedAmount;
 
+      console.log(
+        "[PARTIO] Final Wallet amount:",
+        formatUnits(
+          walletAmount,
+          6
+        ),
+        "USDC"
+      );
+
+      /*
+       * --------------------------------------------------
+       * Validate wallet balance only when needed
+       * --------------------------------------------------
+       */
+
       if (
         walletAmount > 0n
       ) {
+        console.time(
+          "[PARTIO] getWalletUSDCBalance"
+        );
+
         const walletBalance =
           await getWalletUSDCBalance(
             address
           );
+
+        console.timeEnd(
+          "[PARTIO] getWalletUSDCBalance"
+        );
+
+        console.log(
+          "[PARTIO] Wallet balance:",
+          formatUnits(
+            walletBalance,
+            6
+          ),
+          "USDC"
+        );
 
         if (
           walletBalance <
@@ -415,41 +884,91 @@ export function usePartition(
         }
       }
 
+      /*
+       * --------------------------------------------------
+       * Unified Balance spend
+       * --------------------------------------------------
+       */
+
       if (
         unifiedAmount > 0n
       ) {
+        console.log(
+          "[PARTIO] Starting Unified Balance spend..."
+        );
+
         setIsWriting(true);
+
+        console.time(
+          "[PARTIO] spendUSDC"
+        );
 
         await spendUSDC(
           adapter,
+
           PARTIO_ADDRESS,
+
           formatUnits(
             unifiedAmount,
             6
           )
         );
 
+        console.timeEnd(
+          "[PARTIO] spendUSDC"
+        );
+
+        console.log(
+          "[PARTIO] Unified Balance spend completed."
+        );
+
         setIsWriting(false);
       }
+
+      /*
+       * --------------------------------------------------
+       * Wallet USDC transfer
+       * --------------------------------------------------
+       */
 
       if (
         walletAmount > 0n
       ) {
+        console.log(
+          "[PARTIO] Starting wallet USDC transfer..."
+        );
+
         setIsWriting(true);
+
+        console.time(
+          "[PARTIO] wallet transfer signature"
+        );
 
         const walletTransferHash =
           await writeContractAsync({
             address:
               USDC_ADDRESS,
+
             abi:
               USDC_ABI,
+
             functionName:
               "transfer",
+
             args: [
               PARTIO_ADDRESS,
               walletAmount,
             ],
           });
+
+        console.timeEnd(
+          "[PARTIO] wallet transfer signature"
+        );
+
+        console.log(
+          "[PARTIO] Wallet transfer hash:",
+          walletTransferHash
+        );
 
         if (!publicClient) {
           throw new Error(
@@ -457,26 +976,49 @@ export function usePartition(
           );
         }
 
-        await publicClient.waitForTransactionReceipt(
-          {
-            hash:
-              walletTransferHash,
-          }
+        console.time(
+          "[PARTIO] wallet transfer confirmation"
+        );
+
+        await publicClient.waitForTransactionReceipt({
+          hash:
+            walletTransferHash,
+        });
+
+        console.timeEnd(
+          "[PARTIO] wallet transfer confirmation"
         );
 
         setIsWriting(false);
       }
 
+      /*
+       * --------------------------------------------------
+       * PARTIO contract transaction
+       * --------------------------------------------------
+       */
+
+      console.log(
+        "[PARTIO] Starting PARTIO contract signature..."
+      );
+
       setIsWriting(true);
+
+      console.time(
+        "[PARTIO] PARTIO contract signature"
+      );
 
       const hash =
         await writeContractAsync({
           address:
             PARTIO_ADDRESS,
+
           abi:
             PARTIO_ABI,
+
           functionName:
             "partition",
+
           args: [
             recipientAddresses,
             amounts,
@@ -484,9 +1026,19 @@ export function usePartition(
           ],
         });
 
+      console.timeEnd(
+        "[PARTIO] PARTIO contract signature"
+      );
+
+      console.log(
+        "[PARTIO] PARTIO transaction hash:",
+        hash
+      );
+
       setTxHash(hash);
 
       setIsWriting(false);
+
       setIsConfirming(true);
 
       if (!publicClient) {
@@ -495,22 +1047,35 @@ export function usePartition(
         );
       }
 
+      console.time(
+        "[PARTIO] PARTIO transaction confirmation"
+      );
+
       const txReceipt =
-        await publicClient.waitForTransactionReceipt(
-          {
-            hash,
-          }
-        );
+        await publicClient.waitForTransactionReceipt({
+          hash,
+        });
+
+      console.timeEnd(
+        "[PARTIO] PARTIO transaction confirmation"
+      );
 
       setReceipt(
         txReceipt
       );
 
       setIsConfirming(false);
+
       setIsConfirmed(true);
+
+      console.log(
+        "========== PARTIO PAYMENT COMPLETE =========="
+      );
     } catch (error) {
       setIsWriting(false);
+
       setIsConfirming(false);
+
       setIsConfirmed(false);
 
       setWriteError(
@@ -518,26 +1083,47 @@ export function usePartition(
           error
         )
       );
+
+      console.error(
+        "[PARTIO] Payment Error:",
+        error
+      );
+    } finally {
+      console.timeEnd(
+        "[PARTIO] TOTAL partition()"
+      );
     }
   }
 
   function resetTransaction() {
     setIsWriting(false);
+
     setIsConfirming(false);
+
     setIsConfirmed(false);
+
     setTxHash(null);
+
     setReceipt(null);
+
     setWriteError(null);
   }
 
   return {
     partition,
+
     resetTransaction,
+
     isWriting,
+
     isConfirming,
+
     isConfirmed,
+
     txHash,
+
     receipt,
+
     writeError,
   };
 }

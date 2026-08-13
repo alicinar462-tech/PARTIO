@@ -5,12 +5,13 @@ const kit = new AppKit();
 
 export async function depositUSDC(
   adapter: any,
-  amount: string = "1.00"
+  amount: string = "1.00",
+  chainName: "Base_Sepolia" | "Arbitrum_Sepolia" = "Base_Sepolia"
 ) {
-  const chain = resolveChainIdentifier("Base_Sepolia");
+  const chain = resolveChainIdentifier(chainName);
 
   if (chain.type !== "evm") {
-    throw new Error("Base_Sepolia is not an EVM chain.");
+    throw new Error(`${chainName} is not an EVM chain.`);
   }
 
   await adapter.ensureChain(chain);
@@ -18,7 +19,7 @@ export async function depositUSDC(
   return await kit.unifiedBalance.deposit({
     from: {
       adapter,
-      chain: "Base_Sepolia",
+      chain: chainName,
     },
     amount,
     token: "USDC",

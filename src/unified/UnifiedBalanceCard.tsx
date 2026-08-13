@@ -38,6 +38,10 @@ const USDC_ABI = [
   },
 ] as const;
 
+type DepositChain =
+  | "Base_Sepolia"
+  | "Arbitrum_Sepolia";
+
 export default function UnifiedBalanceCard() {
   const { address } =
     useAccount();
@@ -62,6 +66,11 @@ export default function UnifiedBalanceCard() {
 
   const [depositAmount, setDepositAmount] =
     useState("1.00");
+
+  const [depositChain, setDepositChain] =
+    useState<DepositChain>(
+      "Base_Sepolia"
+    );
 
   const [
     error,
@@ -196,7 +205,8 @@ export default function UnifiedBalanceCard() {
       const result =
         await depositUSDC(
           adapter,
-          depositAmount
+          depositAmount,
+          depositChain
         );
 
       console.log(
@@ -335,6 +345,30 @@ export default function UnifiedBalanceCard() {
         <label className="mb-2 block text-sm text-slate-400">
           Deposit to Unified Balance
         </label>
+
+        <div className="mb-3">
+          <select
+            value={depositChain}
+            onChange={(e) =>
+              setDepositChain(
+                e.target.value as DepositChain
+              )
+            }
+            disabled={
+              loading ||
+              refreshing
+            }
+            className="w-full rounded-lg border border-slate-700 bg-[#080d2d]/80 px-4 py-3 text-white outline-none transition focus:border-indigo-500 disabled:opacity-50"
+          >
+            <option value="Base_Sepolia">
+              Base Sepolia
+            </option>
+
+            <option value="Arbitrum_Sepolia">
+              Arbitrum Sepolia
+            </option>
+          </select>
+        </div>
 
         <div className="flex gap-3">
           <input

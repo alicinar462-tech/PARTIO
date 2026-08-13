@@ -1,4 +1,8 @@
-import { ArcTestnet, BaseSepolia } from "@circle-fin/app-kit/chains";
+import {
+  ArcTestnet,
+  ArbitrumSepolia,
+  BaseSepolia,
+} from "@circle-fin/app-kit/chains";
 import { createViemAdapterFromProvider } from "@circle-fin/adapter-viem-v2";
 
 declare global {
@@ -15,7 +19,11 @@ export async function createArcAdapter() {
   return await createViemAdapterFromProvider({
     provider: window.ethereum,
     capabilities: {
-      supportedChains: [BaseSepolia, ArcTestnet],
+      supportedChains: [
+        BaseSepolia,
+        ArbitrumSepolia,
+        ArcTestnet,
+      ],
     },
   });
 }
