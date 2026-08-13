@@ -10,11 +10,13 @@
 
 PARTIO is a payment application I'm building for the ARC Hackathon.
 
-The idea is simple: send one payment to multiple recipients without creating a separate payment flow for each recipient.
+The idea is pretty simple: instead of making a separate payment for every person, you can prepare everything in one place and send one payment to multiple recipients.
 
-PARTIO runs on ARC Testnet and uses Circle App Kit and Unified Balance to bring wallet and Unified Balance funds into the payment flow. The payment is then handled by a Solidity smart contract that partitions the total amount between multiple recipients.
+PARTIO runs on ARC Testnet and uses Circle App Kit and Unified Balance. It can use both the connected wallet and Unified Balance when preparing a payment.
 
-I'm building this as a working demo and improving it step by step.
+The payment is then sent through a Solidity smart contract, which splits the payment between the recipients.
+
+I'm building this as a working demo and adding things step by step as I test them.
 
 ---
 
@@ -31,24 +33,24 @@ The basic flow is:
 1. Connect your wallet
 2. Add recipients
 3. Enter an amount for each recipient
-4. PARTIO calculates the total payment
-5. Wallet and Unified Balance funds are checked
+4. PARTIO calculates the total
+5. It checks the wallet and Unified Balance
 6. Review the payment
 7. Confirm the transaction
-8. The PARTIO contract distributes the payment to the recipients
+8. The PARTIO contract sends the payment to the recipients
 
-The main idea is to keep the user flow simple while handling the payment distribution on-chain.
+The main goal is to keep the whole process simple and avoid making the user deal with separate transactions for every recipient.
 
 ---
 
 ## Features
 
 - USDC payments on ARC Testnet
-- Multiple recipients
+- Multiple recipients in one payment
 - Payment partitioning through a Solidity smart contract
-- Circle App Kit integration
-- Circle Unified Balance integration
-- Circle Gateway-backed payment flow
+- Circle App Kit
+- Circle Unified Balance
+- Circle Gateway
 - Wallet connection
 - ARC Testnet detection
 - Network switching
@@ -58,16 +60,22 @@ The main idea is to keep the user flow simple while handling the payment distrib
 - Transaction confirmation
 - ArcScan transaction link
 - Responsive UI
+- Wallet + Unified Balance payments
+- Base Sepolia and Arbitrum Sepolia support for Unified Balance
+- Improved Unified Balance payment flow
+- Faster payment preparation
 
 ---
 
 ## Circle Integration
 
-PARTIO uses Circle's developer tools as part of the payment flow.
+PARTIO uses Circle's tools for the Unified Balance part of the payment flow.
 
 ### Circle App Kit
 
-The project uses `@circle-fin/app-kit` to work with Circle's Unified Balance features.
+I'm using `@circle-fin/app-kit` to work with Unified Balance.
+
+The basic setup looks like this:
 
 ~~~text
 Wallet
@@ -81,15 +89,40 @@ Unified Balance
 
 ### Unified Balance
 
-Unified Balance is used to access and use USDC available through the user's Unified Balance.
+Unified Balance lets PARTIO use USDC available through the user's Unified Balance.
 
-PARTIO also checks the connected wallet balance and uses the available funds when preparing a payment.
+PARTIO also checks the connected wallet balance.
+
+If there isn't enough in Unified Balance to cover the payment, the remaining amount can be taken from the connected wallet.
+
+For example:
+
+~~~text
+Payment: 15 USDC
+
+Unified Balance → 4.981 USDC
+Wallet          → 10.019 USDC
+--------------------------------
+Total           → 15.000 USDC
+~~~
+
+This means the user doesn't have to manually move the funds around before making the payment.
 
 ### Gateway
 
 Circle Gateway is part of the infrastructure behind the Unified Balance flow.
 
-PARTIO uses the App Kit and Unified Balance APIs instead of implementing the lower-level Gateway flow from scratch.
+I'm using Circle App Kit and Unified Balance APIs instead of building the lower-level Gateway flow myself.
+
+---
+
+## Supported Networks
+
+PARTIO currently runs on ARC Testnet.
+
+Base Sepolia and Arbitrum Sepolia is also supported in the Unified Balance deposit and balance flow.
+
+I'm planning to add more networks as I continue working on the project.
 
 ---
 
@@ -99,7 +132,7 @@ The payment distribution is handled by the PARTIO Solidity smart contract on ARC
 
 The frontend collects the recipient addresses and amounts and sends them to the contract.
 
-The contract then partitions the payment between the recipients.
+The contract then splits the payment between the recipients.
 
 For example:
 
@@ -113,7 +146,49 @@ Recipient 4 → 1 USDC
 Recipient 5 → 1 USDC
 ~~~
 
-This is the main reason for the name PARTIO — partitioning one payment into multiple destinations.
+That's also where the name PARTIO comes from — partitioning one payment into multiple destinations.
+
+---
+
+## Payment Flow
+
+PARTIO can use both Unified Balance and wallet funds in the same payment.
+
+Before sending the payment, PARTIO checks how much can actually be used from Unified Balance.
+
+If the full amount can be used, it goes directly with Unified Balance.
+
+If not, PARTIO finds a usable amount and takes the rest from the connected wallet.
+
+For example, if you want to send 15 USDC and 4.981 USDC can be used from Unified Balance:
+
+~~~text
+Unified Balance → 4.981 USDC
+Wallet          → 10.019 USDC
+Total           → 15.000 USDC
+~~~
+
+The idea is to make this happen in the background without making the user manually deal with the two balances.
+
+---
+
+## Recent Updates
+
+I've recently spent some time improving the payment flow, especially the part involving Unified Balance.
+
+The first version was working, but some payments were taking longer than I wanted.
+
+I changed the way PARTIO checks how much can be spent from Unified Balance.
+
+If the requested amount can already be spent, PARTIO doesn't keep doing unnecessary checks.
+
+If it can't, it first tries to find a usable amount faster instead of immediately running a long search.
+
+This made a pretty noticeable difference during my testnet tests.
+
+Payments using only Unified Balance became much faster, and payments using both Unified Balance and wallet funds also improved.
+
+The overall payment flow now feels much better compared to the earlier version.
 
 ---
 
@@ -163,30 +238,41 @@ lib/
 
 ## Roadmap
 
-Some things I'd like to work on next:
+There are a few things I want to add next.
+
+### Currently Working On
 
 - Transaction history
+- Finding previous payments by wallet address
+- New network integrations
+- Feedback button
+- Feedback system
+- More payment flow improvements
+
+### Planned
+
 - Arc Name support
 - Better mobile experience
 - Improved contact management
 - Better accessibility
 - More UI improvements
 - More payment options
+- More detailed transaction history
 
-I'm also interested in exploring a more unified payment experience for cross-chain users.
+I'd also like to explore a more unified payment experience for users who have funds on different networks.
 
-Instead of asking users to bridge assets first, I'd like to explore how Circle's infrastructure can make that process simpler for the user.
+Instead of making users bridge everything first, I'd like to see how much of this can be handled in the background with Circle's infrastructure.
 
-There is still a lot I want to learn and improve as I continue building PARTIO.
+There are still quite a few things I want to try with PARTIO, so this project will continue to evolve as I test and learn.
 
 ---
 
 ## Feedback
 
-I'm still learning and building.
+I'm still building and learning with PARTIO.
 
-If you try PARTIO and find something that could be improved, I'd really appreciate your feedback.
+If you try the app and something doesn't work as expected, or you simply have an idea that could make it better, I'd really like to hear it.
 
-Ideas, bugs and suggestions are all welcome.
+Bugs, ideas and suggestions are all welcome.
 
-Every suggestion helps make PARTIO a little better.
+I'm planning to add a feedback button directly into the app as well, so it will be easier to send feedback while using PARTIO.
