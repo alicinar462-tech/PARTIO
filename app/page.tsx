@@ -2,8 +2,11 @@
 
 import ConnectWallet from "../components/wallet/ConnectWallet";
 import FeedbackForm from "../components/feedback/FeedbackForm";
+import { useAccount } from "wagmi";
 
 export default function Home() {
+  const { isConnected } = useAccount();
+
   return (
     <main className="min-h-screen bg-neutral-950 text-white">
       <div className="mx-auto flex w-full max-w-7xl flex-col px-8 py-10">
@@ -17,7 +20,7 @@ export default function Home() {
 
         <ConnectWallet />
 
-        <FeedbackForm />
+        {isConnected && <FeedbackForm />}
       </div>
     </main>
   );
