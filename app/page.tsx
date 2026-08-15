@@ -1,6 +1,7 @@
 "use client";
 
 import ConnectWallet from "../components/wallet/ConnectWallet";
+import FeedbackForm from "../components/feedback/FeedbackForm";
 
 export default function Home() {
   return (
@@ -15,6 +16,8 @@ export default function Home() {
         </header>
 
         <ConnectWallet />
+
+        <FeedbackForm />
       </div>
     </main>
   );
