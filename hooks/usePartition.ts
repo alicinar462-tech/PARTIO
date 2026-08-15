@@ -5,13 +5,14 @@ import { useState } from "react";
 import {
   formatUnits,
   parseUnits,
+  publicActions,
   type Address,
   type TransactionReceipt,
 } from "viem";
 
 import {
   useAccount,
-  usePublicClient,
+  useConnectorClient,
   useWriteContract,
 } from "wagmi";
 
@@ -85,13 +86,13 @@ const MICRO_USDC = 1n;
  * very low while still finding a usable Unified amount.
  */
 const UNIFIED_RESERVES = [
-  10_000n,   // 0.010000 USDC
-  20_000n,   // 0.020000 USDC
-  50_000n,   // 0.050000 USDC
-  100_000n,  // 0.100000 USDC
-  250_000n,  // 0.250000 USDC
-  500_000n,  // 0.500000 USDC
-  1_000_000n, // 1.000000 USDC
+  10_000n,     // 0.010000 USDC
+  20_000n,     // 0.020000 USDC
+  50_000n,     // 0.050000 USDC
+  100_000n,    // 0.100000 USDC
+  250_000n,    // 0.250000 USDC
+  500_000n,    // 0.500000 USDC
+  1_000_000n,  // 1.000000 USDC
 ] as const;
 
 function getReadableError(
@@ -155,8 +156,21 @@ function getReadableError(
 export function usePartition(
   recipients: Recipient[]
 ) {
-  const publicClient =
-    usePublicClient();
+  /*
+   * IMPORTANT:
+   *
+   * We intentionally use the connected wallet's
+   * connector client for blockchain reads.
+   *
+   * This avoids forcing Brave/Rabby/etc. to use the
+   * hardcoded Blockdaemon RPC for eth_call operations.
+   *
+   * The wallet provider already knows how to communicate
+   * with the currently selected ARC Testnet network.
+   */
+  const {
+    data: connectorClient,
+  } = useConnectorClient();
 
   const { address } =
     useAccount();
@@ -201,16 +215,32 @@ export function usePartition(
     Error | null
   >(null);
 
-  async function getWalletUSDCBalance(
-    walletAddress: Address
-  ) {
-    if (!publicClient) {
+  /*
+   * Create a public-capable client from the connected
+   * wallet client.
+   *
+   * This uses the wallet's own EIP-1193 provider instead
+   * of the application's hardcoded RPC transport.
+   */
+  function getWalletClient() {
+    if (!connectorClient) {
       throw new Error(
-        "Unable to connect to ARC Testnet."
+        "Unable to connect to the wallet."
       );
     }
 
-    return await publicClient.readContract({
+    return connectorClient.extend(
+      publicActions
+    );
+  }
+
+  async function getWalletUSDCBalance(
+    walletAddress: Address
+  ) {
+    const walletClient =
+      getWalletClient();
+
+    return await walletClient.readContract({
       address:
         USDC_ADDRESS,
 
@@ -369,17 +399,6 @@ export function usePartition(
      *
      * Instead of running the old binary search, try
      * progressively larger safety reserves.
-     *
-     * Example:
-     *
-     * 16.992001
-     *
-     * -> 16.982001
-     * -> 16.972001
-     * -> 16.942001
-     * -> ...
-     *
-     * The first successful amount is used.
      * --------------------------------------------------
      */
 
@@ -497,10 +516,6 @@ export function usePartition(
      *
      * If none of the normal reserves worked, use a
      * conservative fallback.
-     *
-     * We intentionally keep this rare. It protects the
-     * payment flow without bringing back the old
-     * 20-25 request binary search.
      * --------------------------------------------------
      */
 
@@ -970,17 +985,14 @@ export function usePartition(
           walletTransferHash
         );
 
-        if (!publicClient) {
-          throw new Error(
-            "Unable to connect to ARC Testnet."
-          );
-        }
-
         console.time(
           "[PARTIO] wallet transfer confirmation"
         );
 
-        await publicClient.waitForTransactionReceipt({
+        const walletClient =
+          getWalletClient();
+
+        await walletClient.waitForTransactionReceipt({
           hash:
             walletTransferHash,
         });
@@ -1041,18 +1053,15 @@ export function usePartition(
 
       setIsConfirming(true);
 
-      if (!publicClient) {
-        throw new Error(
-          "Unable to connect to ARC Testnet."
-        );
-      }
-
       console.time(
         "[PARTIO] PARTIO transaction confirmation"
       );
 
+      const walletClient =
+        getWalletClient();
+
       const txReceipt =
-        await publicClient.waitForTransactionReceipt({
+        await walletClient.waitForTransactionReceipt({
           hash,
         });
 

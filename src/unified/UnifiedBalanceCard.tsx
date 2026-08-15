@@ -9,45 +9,37 @@ import {
 
 import {
   useAccount,
-  usePublicClient,
+  useSwitchChain,
 } from "wagmi";
+
+import { arcTestnet } from "@/lib/wagmi";
 
 import { createArcAdapter } from "./adapters/viem";
 import { depositUSDC } from "./deposit/deposit";
 
-const USDC_ADDRESS =
-  "0x3600000000000000000000000000000000000000" as const;
+const ARC_NATIVE_DECIMALS = 18;
 
-const USDC_ABI = [
-  {
-    type: "function",
-    name: "balanceOf",
-    stateMutability: "view",
-    inputs: [
-      {
-        name: "account",
-        type: "address",
-      },
-    ],
-    outputs: [
-      {
-        name: "balance",
-        type: "uint256",
-      },
-    ],
-  },
-] as const;
+const ARC_CHAIN_ID_HEX = "0x4cef52";
 
 type DepositChain =
   | "Base_Sepolia"
   | "Arbitrum_Sepolia";
 
-export default function UnifiedBalanceCard() {
-  const { address } =
-    useAccount();
+type EthereumProvider = {
+  request: (args: {
+    method: string;
+    params?: unknown[];
+  }) => Promise<unknown>;
+};
 
-  const publicClient =
-    usePublicClient();
+export default function UnifiedBalanceCard() {
+  const {
+    address,
+  } = useAccount();
+
+  const {
+    switchChainAsync,
+  } = useSwitchChain();
 
   const [loading, setLoading] =
     useState(false);
@@ -85,38 +77,177 @@ export default function UnifiedBalanceCard() {
       Number(walletBalance)
     ).toFixed(6);
 
+  function getEthereumProvider():
+    EthereumProvider | null {
+    if (
+      typeof window ===
+      "undefined"
+    ) {
+      return null;
+    }
+
+    const ethereum =
+      (
+        window as Window & {
+          ethereum?: EthereumProvider;
+        }
+      ).ethereum;
+
+    return ethereum ?? null;
+  }
+
+  async function getCurrentProviderChainId() {
+    const ethereum =
+      getEthereumProvider();
+
+    if (!ethereum) {
+      return null;
+    }
+
+    const result =
+      await ethereum.request({
+        method:
+          "eth_chainId",
+      });
+
+    if (
+      typeof result !==
+        "string"
+    ) {
+      return null;
+    }
+
+    return result.toLowerCase();
+  }
+
+  async function waitForArcNetwork(
+    timeoutMs = 5000
+  ) {
+    const startedAt =
+      Date.now();
+
+    while (
+      Date.now() -
+        startedAt <
+      timeoutMs
+    ) {
+      try {
+        const chainId =
+          await getCurrentProviderChainId();
+
+        if (
+          chainId ===
+          ARC_CHAIN_ID_HEX
+        ) {
+          return true;
+        }
+      } catch {
+        // Provider may be updating
+        // its selected network.
+      }
+
+      await new Promise(
+        (resolve) =>
+          setTimeout(
+            resolve,
+            200
+          )
+      );
+    }
+
+    return false;
+  }
+
   useEffect(() => {
+    if (!address) {
+      setConfirmed(
+        "0.000000"
+      );
+
+      setPending(
+        "0.000000"
+      );
+
+      setWalletBalance(
+        "0.000000"
+      );
+
+      return;
+    }
+
     refreshBalance();
-  }, [address]);
+  }, [
+    address,
+  ]);
 
   async function getWalletUSDCBalance(
     walletAddress: Address
   ) {
-    if (!publicClient) {
-      return 0n;
+    const ethereum =
+      getEthereumProvider();
+
+    if (!ethereum) {
+      throw new Error(
+        "Wallet provider not found."
+      );
     }
 
-    return await publicClient.readContract({
-      address:
-        USDC_ADDRESS,
+    const chainId =
+      await getCurrentProviderChainId();
 
-      abi:
-        USDC_ABI,
+    /*
+     * The wallet value shown here is
+     * specifically the native USDC balance
+     * on ARC Testnet.
+     *
+     * Never read the native balance while the
+     * wallet is connected to Base or Arbitrum.
+     */
+    if (
+      chainId !==
+      ARC_CHAIN_ID_HEX
+    ) {
+      return null;
+    }
 
-      functionName:
-        "balanceOf",
+    const result =
+      await ethereum.request({
+        method:
+          "eth_getBalance",
+        params: [
+          walletAddress,
+          "latest",
+        ],
+      });
 
-      args: [
-        walletAddress,
-      ],
-    });
+    if (
+      typeof result !==
+        "string" ||
+      !result.startsWith("0x")
+    ) {
+      throw new Error(
+        "Unable to read wallet balance."
+      );
+    }
+
+    return BigInt(result);
   }
 
-  async function refreshBalance() {
+  async function refreshBalance(
+    silent = false
+  ) {
     try {
       setRefreshing(true);
-      setError(null);
 
+      if (!silent) {
+        setError(null);
+      }
+
+      /*
+       * Unified Balance is independent from
+       * the currently selected browser wallet
+       * network.
+       */
       const adapter =
         await createArcAdapter();
 
@@ -124,7 +255,9 @@ export default function UnifiedBalanceCard() {
         await import(
           "./gateway/balances"
         ).then(
-          ({ getUnifiedBalances }) =>
+          ({
+            getUnifiedBalances,
+          }) =>
             getUnifiedBalances(
               adapter
             )
@@ -140,21 +273,39 @@ export default function UnifiedBalanceCard() {
           "0.000000"
       );
 
-      if (
-        address &&
-        publicClient
-      ) {
+      /*
+       * Read the actual provider network.
+       *
+       * We intentionally do not use the React
+       * chain state here because after a wallet
+       * switch it can take a moment to update.
+       */
+      if (address) {
         const wallet =
           await getWalletUSDCBalance(
             address
           );
 
-        setWalletBalance(
-          formatUnits(
-            wallet,
-            6
-          )
-        );
+        if (
+          wallet !== null
+        ) {
+          setWalletBalance(
+            formatUnits(
+              wallet,
+              ARC_NATIVE_DECIMALS
+            )
+          );
+        } else {
+          /*
+           * Wallet is currently on Base/
+           * Arbitrum/etc. Therefore its native
+           * balance must not be presented as
+           * ARC USDC.
+           */
+          setWalletBalance(
+            "0.000000"
+          );
+        }
       } else {
         setWalletBalance(
           "0.000000"
@@ -162,16 +313,116 @@ export default function UnifiedBalanceCard() {
       }
     } catch (err) {
       console.error(
-        "Balance Refresh Error",
+        "[PARTIO] Balance Refresh Error",
         err
       );
 
-      setError(
-        "Unable to refresh balance."
-      );
+      /*
+       * Silent refreshes happen immediately
+       * after deposit/network transitions.
+       *
+       * Do not flash a red error box to the
+       * user during that transition.
+       */
+      if (!silent) {
+        setError(
+          "Unable to refresh balance."
+        );
+      }
     } finally {
       setRefreshing(false);
     }
+  }
+
+  async function switchBackToArc() {
+    const ethereum =
+      getEthereumProvider();
+
+    if (!ethereum) {
+      console.error(
+        "[PARTIO] Wallet provider not found while switching back to ARC."
+      );
+
+      return false;
+    }
+
+    /*
+     * First check the REAL provider chain.
+     * This avoids relying on a stale React
+     * chainId immediately after deposit.
+     */
+    try {
+      const currentChainId =
+        await getCurrentProviderChainId();
+
+      if (
+        currentChainId ===
+        ARC_CHAIN_ID_HEX
+      ) {
+        return true;
+      }
+    } catch {
+      // Continue with switch attempt.
+    }
+
+    /*
+     * Primary path:
+     * let wagmi perform the network switch.
+     */
+    try {
+      await switchChainAsync({
+        chainId:
+          arcTestnet.id,
+      });
+
+      const switched =
+        await waitForArcNetwork();
+
+      if (switched) {
+        return true;
+      }
+    } catch (err) {
+      console.warn(
+        "[PARTIO] Wagmi ARC switch did not complete:",
+        err
+      );
+    }
+
+    /*
+     * Fallback:
+     * directly request the switch from the
+     * connected browser wallet provider.
+     *
+     * This is particularly useful for wallets
+     * that update their internal network state
+     * slightly differently from wagmi.
+     */
+    try {
+      await ethereum.request({
+        method:
+          "wallet_switchEthereumChain",
+        params: [
+          {
+            chainId:
+              ARC_CHAIN_ID_HEX,
+          },
+        ],
+      });
+
+      const switched =
+        await waitForArcNetwork();
+
+      if (switched) {
+        return true;
+      }
+    } catch (err) {
+      console.warn(
+        "[PARTIO] Direct ARC switch did not complete:",
+        err
+      );
+    }
+
+    return false;
   }
 
   async function handleDeposit() {
@@ -199,7 +450,7 @@ export default function UnifiedBalanceCard() {
         await createArcAdapter();
 
       console.log(
-        "Deposit Started"
+        "[PARTIO] Deposit Started"
       );
 
       const result =
@@ -210,17 +461,68 @@ export default function UnifiedBalanceCard() {
         );
 
       console.log(
-        "Deposit Result"
+        "[PARTIO] Deposit Result"
       );
 
       console.log(
         result
       );
 
-      await refreshBalance();
+      /*
+       * Circle deposit may have moved the
+       * browser wallet to Base Sepolia or
+       * Arbitrum Sepolia.
+       *
+       * Return to ARC before touching the
+       * wallet balance again.
+       */
+      const switchedBack =
+        await switchBackToArc();
+
+      if (!switchedBack) {
+        /*
+         * Deposit itself succeeded.
+         *
+         * Do NOT show:
+         * "Unable to refresh balance."
+         *
+         * The user should not see a scary
+         * error merely because the wallet
+         * provider did not immediately switch.
+         */
+        console.warn(
+          "[PARTIO] Deposit completed, but ARC network could not be confirmed yet."
+        );
+
+        return;
+      }
+
+      /*
+       * The wallet provider has now confirmed
+       * ARC Testnet.
+       *
+       * Give the wallet a short moment to
+       * finish updating its internal state.
+       */
+      await new Promise(
+        (resolve) =>
+          setTimeout(
+            resolve,
+            400
+          )
+      );
+
+      /*
+       * Silent refresh:
+       * update the numbers without showing
+       * a red error box during the transition.
+       */
+      await refreshBalance(
+        true
+      );
     } catch (err) {
       console.error(
-        "Deposit Error",
+        "[PARTIO] Deposit Error",
         err
       );
 
@@ -236,7 +538,6 @@ export default function UnifiedBalanceCard() {
 
   return (
     <div className="partio-card rounded-2xl p-5 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
-      {/* Section label + refresh */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="h-2.5 w-2.5 rounded-full bg-purple-400 shadow-[0_0_14px_rgba(155,92,255,0.8)]" />
@@ -247,7 +548,9 @@ export default function UnifiedBalanceCard() {
         </div>
 
         <button
-          onClick={refreshBalance}
+          onClick={() =>
+            refreshBalance()
+          }
           disabled={
             refreshing ||
             loading
@@ -260,7 +563,6 @@ export default function UnifiedBalanceCard() {
         </button>
       </div>
 
-      {/* Centered heading */}
       <div className="mt-3 text-center">
         <h2 className="text-2xl font-bold tracking-tight text-white">
           USDC Balance
@@ -271,9 +573,7 @@ export default function UnifiedBalanceCard() {
         </p>
       </div>
 
-      {/* Balance cards */}
       <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-        {/* Total */}
         <div className="rounded-xl border border-indigo-400/15 bg-[#080d2d]/80 p-4">
           <p className="partio-label mb-2">
             Total Available
@@ -288,7 +588,6 @@ export default function UnifiedBalanceCard() {
           </p>
         </div>
 
-        {/* Wallet */}
         <div className="rounded-xl border border-indigo-400/15 bg-[#080d2d]/80 p-4">
           <p className="partio-label mb-2">
             Wallet
@@ -303,7 +602,6 @@ export default function UnifiedBalanceCard() {
           </p>
         </div>
 
-        {/* Deposit */}
         <div className="rounded-xl border border-indigo-400/15 bg-[#080d2d]/80 p-4">
           <p className="partio-label mb-2">
             Deposit
@@ -318,7 +616,6 @@ export default function UnifiedBalanceCard() {
           </p>
         </div>
 
-        {/* Pending */}
         <div className="rounded-xl border border-indigo-400/15 bg-[#080d2d]/80 p-4">
           <p className="partio-label mb-2">
             Pending
@@ -340,7 +637,6 @@ export default function UnifiedBalanceCard() {
         </div>
       )}
 
-      {/* Deposit */}
       <div className="mt-5">
         <label className="mb-2 block text-sm text-slate-400">
           Deposit to Unified Balance
@@ -348,7 +644,9 @@ export default function UnifiedBalanceCard() {
 
         <div className="mb-3">
           <select
-            value={depositChain}
+            value={
+              depositChain
+            }
             onChange={(e) =>
               setDepositChain(
                 e.target.value as DepositChain
@@ -382,7 +680,9 @@ export default function UnifiedBalanceCard() {
             }
             inputMode="decimal"
             placeholder="1.00"
-            disabled={loading}
+            disabled={
+              loading
+            }
             className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-[#080d2d]/80 px-4 py-3 outline-none transition focus:border-indigo-500 disabled:opacity-50"
           />
 

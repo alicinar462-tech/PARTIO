@@ -9,8 +9,6 @@ import {
 
 import {
   useAccount,
-  usePublicClient,
-  useBalance,
   useConnect,
   useDisconnect,
   useSwitchChain,
@@ -41,28 +39,14 @@ import ReviewModal from "../payment/ReviewModal";
 
 const GAS_BUFFER = 0.01;
 
-const USDC_ADDRESS =
-  "0x3600000000000000000000000000000000000000" as const;
+type EthereumProvider = {
+  request: (args: {
+    method: string;
+    params?: unknown[];
+  }) => Promise<unknown>;
+};
 
-const USDC_ABI = [
-  {
-    type: "function",
-    name: "balanceOf",
-    stateMutability: "view",
-    inputs: [
-      {
-        name: "account",
-        type: "address",
-      },
-    ],
-    outputs: [
-      {
-        name: "balance",
-        type: "uint256",
-      },
-    ],
-  },
-] as const;
+
 
 export default function ConnectWallet() {
   const [mounted, setMounted] =
@@ -81,6 +65,11 @@ export default function ConnectWallet() {
     setBalanceRefreshing,
   ] = useState(false);
 
+  const [
+    walletBalance,
+    setWalletBalance,
+  ] = useState(0);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -90,23 +79,6 @@ export default function ConnectWallet() {
     chainId,
     isConnected,
   } = useAccount();
-
-  const publicClient =
-    usePublicClient();
-
-  const {
-    data: balanceData,
-  } = useBalance({
-    address,
-  });
-
-  const walletNativeBalance =
-    Number(
-      formatUnits(
-        balanceData?.value ?? 0n,
-        balanceData?.decimals ?? 18
-      )
-    );
 
   const {
     connect,
@@ -150,6 +122,50 @@ export default function ConnectWallet() {
     recipients
   );
 
+  async function refreshWalletBalance() {
+    if (
+      !address ||
+      !window.ethereum ||
+      chainId !== arcTestnet.id
+    ) {
+      setWalletBalance(0);
+      return;
+    }
+
+    try {
+      const result =
+        await window.ethereum.request({
+          method: "eth_getBalance",
+          params: [
+            address,
+            "latest",
+          ],
+        });
+
+      const balanceHex =
+        result as string;
+
+      const balance =
+        BigInt(balanceHex);
+
+      setWalletBalance(
+        Number(
+          formatUnits(
+            balance,
+            18
+          )
+        )
+      );
+    } catch (error) {
+      console.error(
+        "[PARTIO] Wallet balance error:",
+        error
+      );
+
+      setWalletBalance(0);
+    }
+  }
+
   async function refreshUnifiedBalance() {
     try {
       setBalanceRefreshing(true);
@@ -178,16 +194,26 @@ export default function ConnectWallet() {
     }
   }
 
+  async function refreshAllBalances() {
+    await Promise.all([
+      refreshWalletBalance(),
+      refreshUnifiedBalance(),
+    ]);
+  }
+
   useEffect(() => {
-    if (!mounted || !isConnected) {
+    if (
+      !mounted ||
+      !isConnected
+    ) {
       return;
     }
 
-    refreshUnifiedBalance();
+    refreshAllBalances();
 
     const interval =
       setInterval(
-        refreshUnifiedBalance,
+        refreshAllBalances,
         15000
       );
 
@@ -197,10 +223,63 @@ export default function ConnectWallet() {
     mounted,
     isConnected,
     address,
+    chainId,
   ]);
 
-  const walletBalance =
-    walletNativeBalance;
+  useEffect(() => {
+    if (
+      !mounted ||
+      !window.ethereum
+    ) {
+      return;
+    }
+
+    const handleAccountsChanged =
+      () => {
+        refreshWalletBalance();
+      };
+
+    const handleChainChanged =
+      () => {
+        refreshWalletBalance();
+      };
+
+    const provider =
+      window.ethereum as EthereumProvider & {
+        on?: (
+          event: string,
+          listener: (...args: unknown[]) => void
+        ) => void;
+        removeListener?: (
+          event: string,
+          listener: (...args: unknown[]) => void
+        ) => void;
+      };
+
+    provider.on?.(
+      "accountsChanged",
+      handleAccountsChanged
+    );
+
+    provider.on?.(
+      "chainChanged",
+      handleChainChanged
+    );
+
+    return () => {
+      provider.removeListener?.(
+        "accountsChanged",
+        handleAccountsChanged
+      );
+
+      provider.removeListener?.(
+        "chainChanged",
+        handleChainChanged
+      );
+    };
+  }, [
+    mounted,
+  ]);
 
   const availableBalance =
     walletBalance +
