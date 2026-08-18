@@ -19,14 +19,17 @@ import { injected } from "wagmi/connectors";
 import { arcTestnet } from "@/lib/wagmi";
 
 import { Contact } from "@/types/contact";
+import { SavedGroup } from "@/types/saved-group";
 
 import { useContacts } from "@/hooks/useContacts";
 import { useRecipients } from "@/hooks/useRecipients";
 import { usePartition } from "@/hooks/usePartition";
+import { useSavedGroups } from "@/hooks/useSavedGroups";
 
 import ContactForm from "../contacts/ContactForm";
 import ContactsPanel from "../contacts/ContactsPanel";
 import RecipientsPanel from "../recipients/RecipientsPanel";
+import SavedGroupsPanel from "../groups/SavedGroupsPanel";
 
 import WalletCard from "./WalletCard";
 
@@ -45,8 +48,6 @@ type EthereumProvider = {
     params?: unknown[];
   }) => Promise<unknown>;
 };
-
-
 
 export default function ConnectWallet() {
   const [mounted, setMounted] =
@@ -109,6 +110,13 @@ export default function ConnectWallet() {
     handleAmountChange,
     clearRecipients,
   } = useRecipients();
+
+  const {
+    savedGroups,
+    handleCreate: handleCreateGroup,
+    handleUpdate: handleUpdateGroup,
+    handleDelete: handleDeleteGroup,
+  } = useSavedGroups();
 
   const {
     partition,
@@ -312,6 +320,34 @@ export default function ConnectWallet() {
     );
   }
 
+  function handleAddSavedGroup(
+    group: SavedGroup
+  ) {
+    const groupContacts =
+      group.contactIds
+        .map((contactId) =>
+          contacts.find(
+            (contact) =>
+              contact.id ===
+              contactId
+          )
+        )
+        .filter(
+          (
+            contact
+          ): contact is Contact =>
+            Boolean(contact)
+        );
+
+    groupContacts.forEach(
+      (contact) => {
+        handleAddRecipient(
+          contact
+        );
+      }
+    );
+  }
+
   function handleNewPayment() {
     resetTransaction();
     clearRecipients();
@@ -394,7 +430,7 @@ export default function ConnectWallet() {
             />
           </div>
 
-          <div className="mt-2 grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div className="mt-2 grid grid-cols-1 gap-2 xl:grid-cols-3">
             <ContactsPanel
               contacts={
                 contacts
@@ -410,6 +446,27 @@ export default function ConnectWallet() {
               }
               onAddRecipient={
                 handleAddRecipient
+              }
+            />
+
+            <SavedGroupsPanel
+              contacts={
+                contacts
+              }
+              savedGroups={
+                savedGroups
+              }
+              onCreate={
+                handleCreateGroup
+              }
+              onUpdate={
+                handleUpdateGroup
+              }
+              onDelete={
+                handleDeleteGroup
+              }
+              onAdd={
+                handleAddSavedGroup
               }
             />
 

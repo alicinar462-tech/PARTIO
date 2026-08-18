@@ -17,7 +17,7 @@ export default function ContactCard({
     `${contact.address.slice(0, 6)}...${contact.address.slice(-4)}`;
 
   return (
-    <div className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-800/60 p-4 transition hover:border-blue-500/40 hover:bg-neutral-800">
+    <div className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-800/60 p-3 transition hover:border-blue-500/40 hover:bg-neutral-800">
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
           {contact.name.charAt(0).toUpperCase()}

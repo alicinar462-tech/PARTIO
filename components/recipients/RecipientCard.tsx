@@ -20,7 +20,7 @@ export default function RecipientCard({
     `${recipient.address.slice(0, 6)}...${recipient.address.slice(-4)}`;
 
   return (
-    <div className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-800/60 p-4 transition hover:border-blue-500/40 hover:bg-neutral-800">
+    <div className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-800/60 p-3 transition hover:border-blue-500/40 hover:bg-neutral-800">
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
           {recipient.name.charAt(0).toUpperCase()}
@@ -37,8 +37,8 @@ export default function RecipientCard({
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-3">
-        <div className="flex items-center rounded-lg border border-neutral-700 bg-neutral-900 px-3">
+      <div className="flex shrink-0 items-center gap-2">
+        <div className="flex h-10 items-center rounded-lg border border-neutral-700 bg-neutral-900 px-3">
           <input
             type="number"
             min="0"
