@@ -41,6 +41,8 @@ The basic flow is:
 
 The main goal is to keep the whole process simple and avoid making the user deal with separate transactions for every recipient.
 
+Saved Groups can also be used to add multiple saved contacts to a payment at once.
+
 ---
 
 ## Features
@@ -57,6 +59,10 @@ The main goal is to keep the whole process simple and avoid making the user deal
 - Wallet balance
 - Unified Balance
 - Contact management
+- Saved Groups
+- Create, edit and delete saved groups
+- Search contacts and saved groups
+- Add multiple contacts to a payment using a saved group
 - Transaction confirmation
 - ArcScan transaction link
 - Responsive UI
@@ -190,6 +196,14 @@ Payments using only Unified Balance became much faster, and payments using both 
 
 The overall payment flow now feels much better compared to the earlier version.
 
+### Saved Groups
+
+Saved Groups have been added to make repeated payments easier.
+
+Users can create groups from their saved contacts and add the whole group to a payment at once.
+
+Groups can also be searched, edited and deleted.
+
 ---
 
 ## Built With
@@ -219,9 +233,11 @@ app/
 
 components/
   Wallet, recipients and payment UI
+  Contacts and Saved Groups UI
 
 hooks/
   Payment and application logic
+  Saved Groups state management
 
 src/unified/
   Circle Unified Balance integration
@@ -232,6 +248,11 @@ contracts/
 
 lib/
   Contract configuration and blockchain helpers
+  Saved Groups storage
+
+types/
+  Application types
+  Contact, recipient and saved group types
 ~~~
 
 ---
