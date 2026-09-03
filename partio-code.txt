@@ -1,0 +1,1519 @@
+==================== app/page.tsx ====================
+"use client";
+
+import { useEffect, useState } from "react";
+
+import { useAccount } from "wagmi";
+
+import ConnectWallet from "../components/wallet/ConnectWallet";
+import FeedbackForm from "../components/feedback/FeedbackForm";
+import PartioAgent from "../components/agent/PartioAgent";
+
+export default function Home() {
+  const { isConnected } = useAccount();
+
+  const [mounted, setMounted] =
+    useState(false);
+
+  const [agentOpen, setAgentOpen] =
+    useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const walletReady =
+    mounted && isConnected;
+
+  function handleOpenPayment() {
+    setAgentOpen(false);
+  }
+
+  return (
+    <main className="min-h-screen bg-neutral-950 text-white">
+      <div className="mx-auto flex w-full max-w-7xl flex-col px-8 py-10">
+        {!agentOpen ? (
+          <>
+            <header className="mb-8 flex flex-col items-center text-center">
+              <img
+                src="/partio-logo.png"
+                alt="PARTIO"
+                className="h-72 w-72 object-contain md:h-96 md:w-96"
+              />
+            </header>
+
+            {walletReady && (
+              <button
+                onClick={() =>
+                  setAgentOpen(true)
+                }
+                className="mb-4 w-full rounded-2xl border border-neutral-800 bg-neutral-900 p-5 text-left shadow-[0_12px_40px_rgba(0,0,0,0.35)] transition hover:border-neutral-600 hover:bg-neutral-800"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="text-lg">
+                        ✦
+                      </span>
+
+                      <span className="text-base font-semibold text-white">
+                        PARTIO Agent
+                      </span>
+                    </div>
+
+                    <p className="text-sm text-neutral-400">
+                      Tell PARTIO who you want to pay
+                      and create your payment using
+                      natural language.
+                    </p>
+                  </div>
+
+                  <span className="shrink-0 text-sm font-medium text-neutral-300">
+                    Open →
+                  </span>
+                </div>
+              </button>
+            )}
+
+            <ConnectWallet />
+
+            {walletReady && (
+              <FeedbackForm />
+            )}
+          </>
+        ) : (
+          <PartioAgent
+            onBack={() =>
+              setAgentOpen(false)
+            }
+            onOpenPayment={
+              handleOpenPayment
+            }
+          />
+        )}
+      </div>
+    </main>
+  );
+}
+==================== PartioAgent.tsx ====================
+"use client";
+
+import { useState } from "react";
+
+import { getContacts } from "@/lib/services/contacts";
+import { Recipient } from "@/types/recipient";
+
+type PartioAgentProps = {
+  onBack: () => void;
+  onOpenPayment: () => void;
+};
+
+type AgentMatch = {
+  recipient: Recipient;
+};
+
+type AgentResult = {
+  matches: AgentMatch[];
+};
+
+function escapeRegExp(value: string) {
+  return value.replace(
+    /[.*+?^${}()|[\]\\]/g,
+    "\\$&"
+  );
+}
+
+function parsePaymentCommand(
+  message: string
+): AgentResult {
+  const contacts = getContacts();
+
+  const normalizedMessage =
+    message.toLowerCase();
+
+  const matches: AgentMatch[] = [];
+
+  for (const contact of contacts) {
+    const name =
+      contact.name.toLowerCase();
+
+    const escapedName =
+      escapeRegExp(name);
+
+    const amountBeforeName =
+      new RegExp(
+        `(\\d+(?:[.,]\\d+)?)\\s*(?:usdc|\\$)?\\s*(?:to|ya|ye)?\\s*${escapedName}`,
+        "i"
+      );
+
+    const nameBeforeAmount =
+      new RegExp(
+        `${escapedName}\\s*(?:for|ye|ya)?\\s*(\\d+(?:[.,]\\d+)?)\\s*(?:usdc|\\$)?`,
+        "i"
+      );
+
+    const match =
+      normalizedMessage.match(
+        amountBeforeName
+      ) ||
+      normalizedMessage.match(
+        nameBeforeAmount
+      );
+
+    if (!match) {
+      continue;
+    }
+
+    const rawAmount =
+      match[1].replace(
+        ",",
+        "."
+      );
+
+    const amount =
+      Number(rawAmount);
+
+    if (
+      Number.isNaN(amount) ||
+      amount <= 0
+    ) {
+      continue;
+    }
+
+    matches.push({
+      recipient: {
+        ...contact,
+        amount:
+          amount.toString(),
+      },
+    });
+  }
+
+  return {
+    matches,
+  };
+}
+
+export default function PartioAgent({
+  onBack,
+  onOpenPayment,
+}: PartioAgentProps) {
+  const [
+    message,
+    setMessage,
+  ] = useState("");
+
+  const [
+    result,
+    setResult,
+  ] = useState<AgentResult | null>(
+    null
+  );
+
+  function handleSubmit(
+    event: React.FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
+
+    if (!message.trim()) {
+      return;
+    }
+
+    const parsed =
+      parsePaymentCommand(
+        message
+      );
+
+    setResult(parsed);
+  }
+
+  function handleOpenPayment() {
+    if (
+      !result ||
+      result.matches.length === 0
+    ) {
+      return;
+    }
+
+    const recipients =
+      result.matches.map(
+        (match) =>
+          match.recipient
+      );
+
+    localStorage.setItem(
+      "partio_agent_draft",
+      JSON.stringify(
+        recipients
+      )
+    );
+
+    onOpenPayment();
+  }
+
+  return (
+    <section className="mx-auto w-full max-w-4xl">
+      <button
+        onClick={onBack}
+        className="mb-8 flex items-center gap-2 text-sm text-neutral-400 transition hover:text-white"
+      >
+        ← Back to PARTIO
+      </button>
+
+      <div className="rounded-3xl border border-neutral-800 bg-neutral-900 p-6 shadow-[0_12px_40px_rgba(0,0,0,0.35)] md:p-10">
+        <div className="mb-10">
+          <div className="mb-4 inline-flex items-center rounded-full border border-neutral-700 bg-neutral-800 px-3 py-1 text-xs font-medium text-neutral-300">
+            ✦ PARTIO Agent
+          </div>
+
+          <h1 className="text-3xl font-semibold text-white md:text-4xl">
+            Tell PARTIO who you want to pay.
+          </h1>
+
+          <p className="mt-4 max-w-2xl text-base leading-7 text-neutral-400">
+            Use natural language to prepare a payment.
+            PARTIO Agent will search your saved contacts
+            and create a payment draft for review.
+          </p>
+        </div>
+
+        <div className="mb-8 rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
+          <p className="text-xs font-medium uppercase tracking-wider text-neutral-500">
+            Example
+          </p>
+
+          <p className="mt-3 text-sm text-neutral-300">
+            Send 20 USDC to Jini, 25 USDC to Malto
+            and 10 USDC to Sherry.
+          </p>
+        </div>
+
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-3"
+        >
+          <textarea
+            value={message}
+            onChange={(event) => {
+              setMessage(
+                event.target.value
+              );
+
+              setResult(null);
+            }}
+            placeholder="Tell PARTIO what you want to do..."
+            rows={4}
+            className="w-full resize-none rounded-2xl border border-neutral-700 bg-neutral-950 px-5 py-4 text-sm text-white outline-none transition placeholder:text-neutral-600 focus:border-white"
+          />
+
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={
+                !message.trim()
+              }
+              className="rounded-xl bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Ask PARTIO Agent
+            </button>
+          </div>
+        </form>
+
+        {result && (
+          <div className="mt-8 rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
+            <div className="mb-4">
+              <p className="text-sm font-semibold text-white">
+                Payment draft
+              </p>
+
+              <p className="mt-1 text-xs text-neutral-500">
+                Review the contacts and amounts found
+                by PARTIO Agent.
+              </p>
+            </div>
+
+            {result.matches.length >
+            0 ? (
+              <div className="space-y-3">
+                {result.matches.map(
+                  ({ recipient }) => (
+                    <div
+                      key={
+                        recipient.id
+                      }
+                      className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-white">
+                          {
+                            recipient.name
+                          }
+                        </p>
+
+                        <p className="mt-1 text-xs text-neutral-500">
+                          {
+                            recipient.address.slice(
+                              0,
+                              6
+                            )
+                          }
+                          ...
+                          {
+                            recipient.address.slice(
+                              -4
+                            )
+                          }
+                        </p>
+                      </div>
+
+                      <p className="text-sm font-semibold text-white">
+                        {
+                          recipient.amount
+                        }{" "}
+                        USDC
+                      </p>
+                    </div>
+                  )
+                )}
+
+                <div className="mt-5 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={
+                      handleOpenPayment
+                    }
+                    className="rounded-xl bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-neutral-200"
+                  >
+                    Open Payment →
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-neutral-400">
+                I could not match this payment request
+                with your saved contacts.
+              </p>
+            )}
+          </div>
+        )}
+
+        <p className="mt-6 text-xs leading-5 text-neutral-500">
+          The agent prepares payment drafts only.
+          No payment will be sent without your review
+          and confirmation.
+        </p>
+      </div>
+    </section>
+  );
+}
+==================== ConnectWallet.tsx ====================
+"use client";
+
+import { useEffect, useState } from "react";
+
+import {
+  formatUnits,
+  type Address,
+} from "viem";
+
+import {
+  useAccount,
+  useConnect,
+  useDisconnect,
+  useSwitchChain,
+} from "wagmi";
+
+import { injected } from "wagmi/connectors";
+
+import { arcTestnet } from "@/lib/wagmi";
+
+import { Contact } from "@/types/contact";
+import { SavedGroup } from "@/types/saved-group";
+
+import { useContacts } from "@/hooks/useContacts";
+import { useRecipients } from "@/hooks/useRecipients";
+import { usePartition } from "@/hooks/usePartition";
+import { useSavedGroups } from "@/hooks/useSavedGroups";
+
+import ContactForm from "../contacts/ContactForm";
+import ContactsPanel from "../contacts/ContactsPanel";
+import RecipientsPanel from "../recipients/RecipientsPanel";
+import SavedGroupsPanel from "../groups/SavedGroupsPanel";
+
+import WalletCard from "./WalletCard";
+
+import UnifiedBalanceCard from "@/src/unified/UnifiedBalanceCard";
+import { createArcAdapter } from "@/src/unified/adapters/viem";
+import { getUnifiedBalances } from "@/src/unified/gateway/balances";
+
+import SummaryCard from "../payment/SummaryCard";
+import ReviewModal from "../payment/ReviewModal";
+
+const GAS_BUFFER = 0.01;
+
+type EthereumProvider = {
+  request: (args: {
+    method: string;
+    params?: unknown[];
+  }) => Promise<unknown>;
+};
+
+export default function ConnectWallet() {
+  const [mounted, setMounted] =
+    useState(false);
+
+  const [reviewOpen, setReviewOpen] =
+    useState(false);
+
+  const [
+    confirmedDeposit,
+    setConfirmedDeposit,
+  ] = useState(0);
+
+  const [
+    balanceRefreshing,
+    setBalanceRefreshing,
+  ] = useState(false);
+
+  const [
+    walletBalance,
+    setWalletBalance,
+  ] = useState(0);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const {
+    address,
+    chainId,
+    isConnected,
+  } = useAccount();
+
+  const {
+    connect,
+    isPending: isConnecting,
+  } = useConnect();
+
+  const {
+    disconnect,
+  } = useDisconnect();
+
+  const {
+    switchChain,
+    isPending: isSwitching,
+  } = useSwitchChain();
+
+  const {
+    contacts,
+    handleCreate,
+    handleDelete,
+  } = useContacts();
+
+  const {
+    recipients,
+    totalAmount,
+    hasValidAmounts,
+    handleAddRecipient,
+    handleRemoveRecipient,
+    handleAmountChange,
+    clearRecipients,
+  } = useRecipients();
+
+  const {
+    savedGroups,
+    handleCreate: handleCreateGroup,
+    handleUpdate: handleUpdateGroup,
+    handleDelete: handleDeleteGroup,
+  } = useSavedGroups();
+
+  const {
+    partition,
+    resetTransaction,
+    isWriting,
+    isConfirming,
+    isConfirmed,
+    txHash,
+    writeError,
+  } = usePartition(
+    recipients
+  );
+
+  async function refreshWalletBalance() {
+    if (
+      !address ||
+      !window.ethereum ||
+      chainId !== arcTestnet.id
+    ) {
+      setWalletBalance(0);
+      return;
+    }
+
+    try {
+      const result =
+        await window.ethereum.request({
+          method: "eth_getBalance",
+          params: [
+            address,
+            "latest",
+          ],
+        });
+
+      const balanceHex =
+        result as string;
+
+      const balance =
+        BigInt(balanceHex);
+
+      setWalletBalance(
+        Number(
+          formatUnits(
+            balance,
+            18
+          )
+        )
+      );
+    } catch (error) {
+      console.error(
+        "[PARTIO] Wallet balance error:",
+        error
+      );
+
+      setWalletBalance(0);
+    }
+  }
+
+  async function refreshUnifiedBalance() {
+    try {
+      setBalanceRefreshing(true);
+
+      const adapter =
+        await createArcAdapter();
+
+      const balance =
+        await getUnifiedBalances(
+          adapter
+        );
+
+      setConfirmedDeposit(
+        Number(
+          balance.totalConfirmedBalance ??
+            "0"
+        )
+      );
+    } catch (error) {
+      console.error(
+        "Unified Balance Refresh Error",
+        error
+      );
+    } finally {
+      setBalanceRefreshing(false);
+    }
+  }
+
+  async function refreshAllBalances() {
+    await Promise.all([
+      refreshWalletBalance(),
+      refreshUnifiedBalance(),
+    ]);
+  }
+
+  useEffect(() => {
+    if (
+      !mounted ||
+      !isConnected
+    ) {
+      return;
+    }
+
+    refreshAllBalances();
+
+    const interval =
+      setInterval(
+        refreshAllBalances,
+        15000
+      );
+
+    return () =>
+      clearInterval(interval);
+  }, [
+    mounted,
+    isConnected,
+    address,
+    chainId,
+  ]);
+
+  useEffect(() => {
+    if (
+      !mounted ||
+      !window.ethereum
+    ) {
+      return;
+    }
+
+    const handleAccountsChanged =
+      () => {
+        refreshWalletBalance();
+      };
+
+    const handleChainChanged =
+      () => {
+        refreshWalletBalance();
+      };
+
+    const provider =
+      window.ethereum as EthereumProvider & {
+        on?: (
+          event: string,
+          listener: (...args: unknown[]) => void
+        ) => void;
+        removeListener?: (
+          event: string,
+          listener: (...args: unknown[]) => void
+        ) => void;
+      };
+
+    provider.on?.(
+      "accountsChanged",
+      handleAccountsChanged
+    );
+
+    provider.on?.(
+      "chainChanged",
+      handleChainChanged
+    );
+
+    return () => {
+      provider.removeListener?.(
+        "accountsChanged",
+        handleAccountsChanged
+      );
+
+      provider.removeListener?.(
+        "chainChanged",
+        handleChainChanged
+      );
+    };
+  }, [
+    mounted,
+  ]);
+
+  const availableBalance =
+    walletBalance +
+    confirmedDeposit;
+
+  const remainingBalance =
+    availableBalance -
+    totalAmount -
+    GAS_BUFFER;
+
+  const missingAmount =
+    Math.max(
+      totalAmount +
+        GAS_BUFFER -
+        availableBalance,
+      0
+    );
+
+  const hasEnoughBalance =
+    availableBalance >=
+    totalAmount +
+      GAS_BUFFER;
+
+  function handleDeleteContact(
+    contact: Contact
+  ) {
+    handleDelete(contact);
+    handleRemoveRecipient(
+      contact.id
+    );
+  }
+
+  function handleAddSavedGroup(
+    group: SavedGroup
+  ) {
+    const groupContacts =
+      group.contactIds
+        .map((contactId) =>
+          contacts.find(
+            (contact) =>
+              contact.id ===
+              contactId
+          )
+        )
+        .filter(
+          (
+            contact
+          ): contact is Contact =>
+            Boolean(contact)
+        );
+
+    groupContacts.forEach(
+      (contact) => {
+        handleAddRecipient(
+          contact
+        );
+      }
+    );
+  }
+
+  function handleNewPayment() {
+    resetTransaction();
+    clearRecipients();
+    setReviewOpen(false);
+  }
+
+  if (!mounted) {
+    return null;
+  }
+
+  if (!isConnected) {
+    return (
+      <button
+        onClick={() =>
+          connect({
+            connector: injected(),
+          })
+        }
+        disabled={
+          isConnecting
+        }
+        className="rounded-lg bg-white px-6 py-3 font-semibold text-black hover:bg-gray-200"
+      >
+        {isConnecting
+          ? "Connecting..."
+          : "Connect Wallet"}
+      </button>
+    );
+  }
+
+  const isCorrectNetwork =
+    chainId ===
+    arcTestnet.id;
+
+  return (
+    <>
+      <WalletCard
+        address={address}
+        chainId={chainId}
+        availableBalance={
+          availableBalance
+        }
+        isSwitching={
+          isSwitching
+        }
+        onSwitchNetwork={() =>
+          switchChain({
+            chainId:
+              arcTestnet.id,
+          })
+        }
+        onDisconnect={() =>
+          disconnect()
+        }
+      />
+
+      <div className="mt-2">
+        <UnifiedBalanceCard />
+      </div>
+
+      {isCorrectNetwork && (
+        <>
+          <div className="mt-2 rounded-2xl border border-neutral-800 bg-neutral-900 p-6 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-white">
+                Add New Contact
+              </h2>
+
+              <p className="mt-1 text-sm text-neutral-400">
+                Save wallet addresses
+                for future payment
+                partitions.
+              </p>
+            </div>
+
+            <ContactForm
+              onCreate={
+                handleCreate
+              }
+            />
+          </div>
+
+          <div className="mt-2 grid grid-cols-1 gap-2 xl:grid-cols-3">
+            <ContactsPanel
+              contacts={
+                contacts
+              }
+              recipientIds={recipients.map(
+                (
+                  recipient
+                ) =>
+                  recipient.id
+              )}
+              onDelete={
+                handleDeleteContact
+              }
+              onAddRecipient={
+                handleAddRecipient
+              }
+            />
+
+            <SavedGroupsPanel
+              contacts={
+                contacts
+              }
+              savedGroups={
+                savedGroups
+              }
+              onCreate={
+                handleCreateGroup
+              }
+              onUpdate={
+                handleUpdateGroup
+              }
+              onDelete={
+                handleDeleteGroup
+              }
+              onAdd={
+                handleAddSavedGroup
+              }
+            />
+
+            <RecipientsPanel
+              recipients={
+                recipients
+              }
+              onAmountChange={
+                handleAmountChange
+              }
+              onRemove={
+                handleRemoveRecipient
+              }
+            />
+          </div>
+
+          <div className="mt-2">
+            <SummaryCard
+              recipientCount={
+                recipients.length
+              }
+              totalAmount={
+                totalAmount
+              }
+              availableBalance={
+                availableBalance
+              }
+              walletBalance={
+                walletBalance
+              }
+              unifiedBalance={
+                confirmedDeposit
+              }
+              remainingBalance={
+                remainingBalance
+              }
+              missingAmount={
+                missingAmount
+              }
+              hasEnoughBalance={
+                hasEnoughBalance
+              }
+              hasValidAmounts={
+                hasValidAmounts
+              }
+              onReview={() =>
+                setReviewOpen(
+                  true
+                )
+              }
+            />
+          </div>
+
+          {balanceRefreshing && (
+            <p className="mt-2 text-center text-xs text-neutral-500">
+              Updating balance...
+            </p>
+          )}
+        </>
+      )}
+
+      <ReviewModal
+        open={
+          reviewOpen
+        }
+        recipients={
+          recipients
+        }
+        totalAmount={
+          totalAmount
+        }
+        isWriting={
+          isWriting
+        }
+        isConfirming={
+          isConfirming
+        }
+        isConfirmed={
+          isConfirmed
+        }
+        txHash={
+          txHash
+        }
+        writeError={
+          writeError
+        }
+        onClose={() =>
+          setReviewOpen(
+            false
+          )
+        }
+        onConfirm={
+          partition
+        }
+        onNewPayment={
+          handleNewPayment
+        }
+      />
+    </>
+  );
+}
+==================== SummaryCard.tsx ====================
+"use client";
+
+type SummaryCardProps = {
+  recipientCount: number;
+  totalAmount: number;
+  availableBalance: number;
+  walletBalance: number;
+  unifiedBalance: number;
+  remainingBalance: number;
+  missingAmount: number;
+  hasEnoughBalance: boolean;
+  hasValidAmounts: boolean;
+  onReview: () => void;
+};
+
+export default function SummaryCard({
+  recipientCount,
+  totalAmount,
+  availableBalance,
+  walletBalance,
+  unifiedBalance,
+  remainingBalance,
+  missingAmount,
+  hasEnoughBalance,
+  hasValidAmounts,
+  onReview,
+}: SummaryCardProps) {
+  const canReview =
+    hasValidAmounts &&
+    hasEnoughBalance;
+
+  const unifiedUsed = Math.min(
+    unifiedBalance,
+    totalAmount
+  );
+
+  const walletUsed = Math.max(
+    totalAmount - unifiedBalance,
+    0
+  );
+
+  return (
+    <div className="partio-card rounded-2xl p-6">
+      <div className="mb-8 text-center">
+        <div className="mb-4 flex items-center justify-center gap-3">
+          <div className="h-2.5 w-2.5 rounded-full bg-blue-400 shadow-[0_0_14px_rgba(83,109,255,0.8)]" />
+
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+            Payment Summary
+          </span>
+        </div>
+
+        <h2 className="text-2xl font-bold text-white">
+          Review Your Payment
+        </h2>
+
+        <p className="mt-2 text-sm text-slate-400">
+          Review your payment before submitting it to the ARC Network.
+        </p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="partio-subcard rounded-xl border border-indigo-400/10 p-5 shadow-[0_8px_25px_rgba(0,0,0,0.2)]">
+          <p className="partio-label">
+            Recipients
+          </p>
+
+          <p className="mt-3 text-3xl font-bold text-white">
+            {recipientCount}
+          </p>
+        </div>
+
+        <div className="partio-subcard rounded-xl border border-indigo-400/10 p-5 shadow-[0_8px_25px_rgba(0,0,0,0.2)]">
+          <p className="partio-label">
+            Payment Total
+          </p>
+
+          <p className="mt-3 text-3xl font-bold partio-gradient-text">
+            {totalAmount.toFixed(2)}
+          </p>
+
+          <p className="mt-1 text-xs text-slate-500">
+            USDC
+          </p>
+        </div>
+
+        <div className="partio-subcard rounded-xl border border-indigo-400/10 p-5 shadow-[0_8px_25px_rgba(0,0,0,0.2)]">
+          <p className="partio-label">
+            Available Balance
+          </p>
+
+          <p className="mt-3 text-3xl font-bold text-white">
+            {availableBalance.toFixed(2)}
+          </p>
+
+          <p className="mt-1 text-xs text-slate-500">
+            USDC
+          </p>
+        </div>
+
+        <div className="partio-subcard rounded-xl border border-indigo-400/10 p-5 shadow-[0_8px_25px_rgba(0,0,0,0.2)]">
+          <p className="partio-label">
+            Remaining Balance
+          </p>
+
+          <p
+            className={`mt-3 text-3xl font-bold ${
+              remainingBalance >= 0
+                ? "text-emerald-400"
+                : "text-red-400"
+            }`}
+          >
+            {remainingBalance.toFixed(2)}
+          </p>
+
+          <p className="mt-1 text-xs text-slate-500">
+            USDC
+          </p>
+        </div>
+      </div>
+
+      {hasValidAmounts && (
+        <div className="mt-6 rounded-xl border border-indigo-400/10 bg-slate-950/40 p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-white">
+                Payment Funding
+              </p>
+
+              <p className="mt-1 text-xs text-slate-500">
+                How this payment can be funded
+              </p>
+            </div>
+
+            <span className="text-xs font-medium text-slate-500">
+              USDC
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-400">
+                Unified Balance
+              </span>
+
+              <span className="text-sm font-semibold text-white">
+                {unifiedUsed.toFixed(2)} USDC
+              </span>
+            </div>
+
+            <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+              <div
+                className="h-full rounded-full bg-blue-500 transition-all"
+                style={{
+                  width: `${
+                    totalAmount > 0
+                      ? Math.min(
+                          (unifiedUsed / totalAmount) * 100,
+                          100
+                        )
+                      : 0
+                  }%`,
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-400">
+                Connected Wallet
+              </span>
+
+              <span className="text-sm font-semibold text-white">
+                {walletUsed.toFixed(2)} USDC
+              </span>
+            </div>
+
+            <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+              <div
+                className="h-full rounded-full bg-indigo-400 transition-all"
+                style={{
+                  width: `${
+                    totalAmount > 0
+                      ? Math.min(
+                          (walletUsed / totalAmount) * 100,
+                          100
+                        )
+                      : 0
+                  }%`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-8 flex flex-col items-center">
+        <button
+          onClick={onReview}
+          disabled={!canReview}
+          className={`rounded-lg px-8 py-3 font-semibold text-white transition ${
+            canReview
+              ? "bg-blue-600 hover:bg-blue-700"
+              : "cursor-not-allowed bg-slate-800 text-slate-500"
+          }`}
+        >
+          Review Your Payment
+        </button>
+
+        {!hasValidAmounts && (
+          <p className="mt-4 text-center text-xs text-slate-500">
+            Add at least one recipient and enter a valid amount.
+          </p>
+        )}
+
+        {hasValidAmounts &&
+          !hasEnoughBalance && (
+            <div className="mt-5 w-full max-w-sm rounded-xl border border-red-500/25 bg-red-950/25 p-5 text-center">
+              <p className="font-semibold text-red-300">
+                Insufficient Balance
+              </p>
+
+              <p className="mt-2 text-sm text-slate-300">
+                You need{" "}
+                <span className="font-semibold text-white">
+                  {missingAmount.toFixed(2)} USDC
+                </span>{" "}
+                more to complete this payment.
+              </p>
+
+              <p className="mt-2 text-xs text-slate-500">
+                Keep a small amount available for network fees.
+              </p>
+            </div>
+          )}
+
+        {canReview && (
+          <p className="mt-4 text-center text-xs font-medium text-emerald-400">
+            ✓ Balance verified. Ready to continue.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+==================== ReviewModal.tsx ====================
+"use client";
+
+import { Recipient } from "@/types/recipient";
+
+type ReviewModalProps = {
+  open: boolean;
+  recipients: Recipient[];
+  totalAmount: number;
+  isWriting: boolean;
+  isConfirming: boolean;
+  isConfirmed: boolean;
+  txHash: `0x${string}` | null;
+  writeError: Error | null;
+  onClose: () => void;
+  onConfirm: () => void;
+  onNewPayment: () => void;
+};
+
+export default function ReviewModal({
+  open,
+  recipients,
+  totalAmount,
+  isWriting,
+  isConfirming,
+  isConfirmed,
+  txHash,
+  writeError,
+  onClose,
+  onConfirm,
+  onNewPayment,
+}: ReviewModalProps) {
+  if (!open) return null;
+
+  const validRecipients =
+    recipients.filter(
+      (recipient) => {
+        const value =
+          Number(
+            recipient.amount
+          );
+
+        return (
+          !Number.isNaN(value) &&
+          value > 0
+        );
+      }
+    );
+
+  const copyHash = async () => {
+    if (!txHash) return;
+
+    await navigator.clipboard.writeText(
+      txHash
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+      <div className="partio-card flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl shadow-2xl shadow-black/60">
+        {!isConfirmed ? (
+          <>
+            <div className="shrink-0 border-b border-indigo-400/10 px-6 py-6 text-center">
+              <div className="flex items-center justify-center gap-3">
+                <div className="h-2.5 w-2.5 rounded-full bg-purple-400 shadow-[0_0_14px_rgba(155,77,255,0.8)]" />
+
+                <h2 className="text-2xl font-bold text-white">
+                  Review Payment
+                </h2>
+              </div>
+
+              <p className="mt-2 text-sm text-slate-400">
+                Please review all recipients before submitting your transaction.
+              </p>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+              <div className="space-y-2">
+                {writeError && (
+                  <div className="rounded-xl border border-red-500/30 bg-red-950/30 p-4">
+                    <p className="font-semibold text-red-300">
+                      Payment Failed
+                    </p>
+
+                    <p className="mt-1 text-sm text-red-200">
+                      {writeError.message}
+                    </p>
+                  </div>
+                )}
+
+                {validRecipients.length === 0 ? (
+                  <div className="rounded-xl border border-indigo-400/10 bg-black/20 p-6 text-center text-slate-400">
+                    No valid recipients found.
+                  </div>
+                ) : (
+                  validRecipients.map(
+                    (recipient) => (
+                      <div
+                        key={
+                          recipient.id
+                        }
+                        className="partio-subcard rounded-xl p-4"
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-white">
+                              {
+                                recipient.name
+                              }
+                            </p>
+
+                            <p className="mt-1 break-all text-sm text-slate-500">
+                              {
+                                recipient.address
+                              }
+                            </p>
+                          </div>
+
+                          <div className="shrink-0 text-right">
+                            <p className="text-lg font-bold text-cyan-300">
+                              {Number(
+                                recipient.amount
+                              ).toFixed(
+                                2
+                              )}{" "}
+                              USDC
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  )
+                )}
+              </div>
+            </div>
+
+            <div className="shrink-0 border-t border-indigo-400/10 px-6 py-5">
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <p className="partio-label">
+                    Recipients
+                  </p>
+
+                  <p className="mt-2 text-xl font-bold text-white">
+                    {
+                      validRecipients.length
+                    }
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <p className="partio-label">
+                    Total Payment
+                  </p>
+
+                  <p className="mt-2 text-2xl font-bold partio-gradient-text">
+                    {totalAmount.toFixed(
+                      2
+                    )}{" "}
+                    USDC
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={
+                    onClose
+                  }
+                  disabled={
+                    isWriting ||
+                    isConfirming
+                  }
+                  className="rounded-lg border border-slate-700 bg-slate-900/60 px-5 py-3 font-medium text-white transition hover:border-slate-500 hover:bg-slate-800 disabled:opacity-50"
+                >
+                  Back
+                </button>
+
+                <button
+                  onClick={
+                    onConfirm
+                  }
+                  disabled={
+                    isWriting ||
+                    isConfirming
+                  }
+                  className={`rounded-lg px-6 py-3 font-semibold text-white transition ${
+                    isWriting ||
+                    isConfirming
+                      ? "bg-slate-700 opacity-60"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  }`}
+                >
+                  {isWriting
+                    ? "Confirm in your wallet..."
+                    : isConfirming
+                    ? "Waiting for ARC confirmation..."
+                    : "Confirm Payment"}
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="border-b border-indigo-400/10 px-6 py-8 text-center">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-400/10 text-3xl shadow-[0_0_35px_rgba(0,232,137,0.12)]">
+                ✓
+              </div>
+
+              <h2 className="text-3xl font-bold text-white">
+                Payment Completed
+              </h2>
+
+              <p className="mt-3 text-slate-400">
+                Your payment has been successfully confirmed on ARC Network.
+              </p>
+            </div>
+
+            <div className="space-y-6 px-6 py-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="partio-subcard rounded-xl p-5">
+                  <p className="partio-label">
+                    Recipients
+                  </p>
+
+                  <p className="mt-2 text-3xl font-bold text-white">
+                    {
+                      validRecipients.length
+                    }
+                  </p>
+                </div>
+
+                <div className="partio-subcard rounded-xl p-5 text-right">
+                  <p className="partio-label">
+                    Total Sent
+                  </p>
+
+                  <p className="mt-2 text-3xl font-bold text-emerald-400">
+                    {totalAmount.toFixed(
+                      2
+                    )}{" "}
+                    USDC
+                  </p>
+                </div>
+              </div>
+
+              {txHash && (
+                <div className="partio-subcard rounded-xl p-5">
+                  <p className="partio-label mb-3">
+                    Transaction Hash
+                  </p>
+
+                  <p className="break-all font-mono text-sm text-slate-300">
+                    {txHash}
+                  </p>
+
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <button
+                      onClick={
+                        copyHash
+                      }
+                      className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:border-slate-500 hover:bg-slate-800"
+                    >
+                      Copy Hash
+                    </button>
+
+                    <a
+                      href={`https://testnet.arcscan.app/tx/${txHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+                    >
+                      View on ArcScan
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-indigo-400/10 px-6 py-5">
+              <button
+                onClick={
+                  onNewPayment
+                }
+                className="w-full rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
+              >
+                New Payment
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

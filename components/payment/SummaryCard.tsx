@@ -4,6 +4,8 @@ type SummaryCardProps = {
   recipientCount: number;
   totalAmount: number;
   availableBalance: number;
+  walletBalance: number;
+  unifiedBalance: number;
   remainingBalance: number;
   missingAmount: number;
   hasEnoughBalance: boolean;
@@ -15,6 +17,8 @@ export default function SummaryCard({
   recipientCount,
   totalAmount,
   availableBalance,
+  walletBalance,
+  unifiedBalance,
   remainingBalance,
   missingAmount,
   hasEnoughBalance,
@@ -24,6 +28,16 @@ export default function SummaryCard({
   const canReview =
     hasValidAmounts &&
     hasEnoughBalance;
+
+  const unifiedUsed = Math.min(
+    unifiedBalance,
+    totalAmount
+  );
+
+  const walletUsed = Math.max(
+    totalAmount - unifiedBalance,
+    0
+  );
 
   return (
     <div className="partio-card rounded-2xl p-6">
@@ -104,6 +118,80 @@ export default function SummaryCard({
           </p>
         </div>
       </div>
+
+      {hasValidAmounts && (
+        <div className="mt-6 rounded-xl border border-indigo-400/10 bg-slate-950/40 p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-white">
+                Payment Funding
+              </p>
+
+              <p className="mt-1 text-xs text-slate-500">
+                How this payment can be funded
+              </p>
+            </div>
+
+            <span className="text-xs font-medium text-slate-500">
+              USDC
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-400">
+                Unified Balance
+              </span>
+
+              <span className="text-sm font-semibold text-white">
+                {unifiedUsed.toFixed(2)} USDC
+              </span>
+            </div>
+
+            <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+              <div
+                className="h-full rounded-full bg-blue-500 transition-all"
+                style={{
+                  width: `${
+                    totalAmount > 0
+                      ? Math.min(
+                          (unifiedUsed / totalAmount) * 100,
+                          100
+                        )
+                      : 0
+                  }%`,
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-400">
+                Connected Wallet
+              </span>
+
+              <span className="text-sm font-semibold text-white">
+                {walletUsed.toFixed(2)} USDC
+              </span>
+            </div>
+
+            <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+              <div
+                className="h-full rounded-full bg-indigo-400 transition-all"
+                style={{
+                  width: `${
+                    totalAmount > 0
+                      ? Math.min(
+                          (walletUsed / totalAmount) * 100,
+                          100
+                        )
+                      : 0
+                  }%`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mt-8 flex flex-col items-center">
         <button

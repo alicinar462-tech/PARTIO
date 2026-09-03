@@ -19,7 +19,6 @@ import { injected } from "wagmi/connectors";
 import { arcTestnet } from "@/lib/wagmi";
 
 import { Contact } from "@/types/contact";
-import { Recipient } from "@/types/recipient";
 import { SavedGroup } from "@/types/saved-group";
 
 import { useContacts } from "@/hooks/useContacts";
@@ -42,9 +41,6 @@ import SummaryCard from "../payment/SummaryCard";
 import ReviewModal from "../payment/ReviewModal";
 
 const GAS_BUFFER = 0.01;
-
-const AGENT_DRAFT_KEY =
-  "partio_agent_draft";
 
 type EthereumProvider = {
   request: (args: {
@@ -74,11 +70,6 @@ export default function ConnectWallet() {
     walletBalance,
     setWalletBalance,
   ] = useState(0);
-
-  const [
-    agentDraftLoaded,
-    setAgentDraftLoaded,
-  ] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -117,7 +108,6 @@ export default function ConnectWallet() {
     handleAddRecipient,
     handleRemoveRecipient,
     handleAmountChange,
-    loadRecipients,
     clearRecipients,
   } = useRecipients();
 
@@ -139,86 +129,6 @@ export default function ConnectWallet() {
   } = usePartition(
     recipients
   );
-
-  useEffect(() => {
-    if (
-      !mounted ||
-      agentDraftLoaded
-    ) {
-      return;
-    }
-
-    try {
-      const storedDraft =
-        localStorage.getItem(
-          AGENT_DRAFT_KEY
-        );
-
-      if (!storedDraft) {
-        setAgentDraftLoaded(true);
-        return;
-      }
-
-      const parsedDraft =
-        JSON.parse(
-          storedDraft
-        ) as Recipient[];
-
-      if (
-        !Array.isArray(
-          parsedDraft
-        )
-      ) {
-        localStorage.removeItem(
-          AGENT_DRAFT_KEY
-        );
-
-        setAgentDraftLoaded(true);
-        return;
-      }
-
-      const validRecipients =
-        parsedDraft.filter(
-          (recipient) =>
-            recipient &&
-            typeof recipient.id ===
-              "string" &&
-            typeof recipient.name ===
-              "string" &&
-            typeof recipient.address ===
-              "string" &&
-            typeof recipient.amount ===
-              "string"
-        ) as Recipient[];
-
-      if (
-        validRecipients.length > 0
-      ) {
-        loadRecipients(
-          validRecipients
-        );
-      }
-
-      localStorage.removeItem(
-        AGENT_DRAFT_KEY
-      );
-    } catch (error) {
-      console.error(
-        "[PARTIO] Agent draft load error:",
-        error
-      );
-
-      localStorage.removeItem(
-        AGENT_DRAFT_KEY
-      );
-    } finally {
-      setAgentDraftLoaded(true);
-    }
-  }, [
-    mounted,
-    agentDraftLoaded,
-    loadRecipients,
-  ]);
 
   async function refreshWalletBalance() {
     if (

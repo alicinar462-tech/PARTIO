@@ -44,6 +44,12 @@ export function useRecipients() {
     );
   }
 
+  function loadRecipients(
+    nextRecipients: Recipient[]
+  ) {
+    setRecipients(nextRecipients);
+  }
+
   function clearRecipients() {
     setRecipients([]);
   }
@@ -87,6 +93,7 @@ export function useRecipients() {
     handleAddRecipient,
     handleRemoveRecipient,
     handleAmountChange,
+    loadRecipients,
     clearRecipients,
   };
 }
