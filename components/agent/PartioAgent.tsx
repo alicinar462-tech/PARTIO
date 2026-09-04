@@ -14,15 +14,124 @@ type AgentMatch = {
   recipient: Recipient;
 };
 
+type AgentSuggestion = {
+  recipient: Recipient;
+  typedName: string;
+};
+
 type AgentResult = {
   matches: AgentMatch[];
+  suggestions: AgentSuggestion[];
 };
+
+function normalizeText(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9ğüşıöç]/gi, "");
+}
 
 function escapeRegExp(value: string) {
   return value.replace(
     /[.*+?^${}()|[\]\\]/g,
     "\\$&"
   );
+}
+
+function levenshteinDistance(
+  first: string,
+  second: string
+) {
+  const rows = first.length + 1;
+  const columns = second.length + 1;
+
+  const matrix = Array.from(
+    { length: rows },
+    () => Array(columns).fill(0)
+  );
+
+  for (let row = 0; row < rows; row++) {
+    matrix[row][0] = row;
+  }
+
+  for (
+    let column = 0;
+    column < columns;
+    column++
+  ) {
+    matrix[0][column] = column;
+  }
+
+  for (let row = 1; row < rows; row++) {
+    for (
+      let column = 1;
+      column < columns;
+      column++
+    ) {
+      const cost =
+        first[row - 1] ===
+        second[column - 1]
+          ? 0
+          : 1;
+
+      matrix[row][column] = Math.min(
+        matrix[row - 1][column] + 1,
+        matrix[row][column - 1] + 1,
+        matrix[row - 1][column - 1] +
+          cost
+      );
+    }
+  }
+
+  return matrix[
+    first.length
+  ][second.length];
+}
+
+function findClosestContact(
+  typedName: string
+) {
+  const contacts = getContacts();
+
+  const normalizedTypedName =
+    normalizeText(typedName);
+
+  let closestContact:
+    | (typeof contacts)[number]
+    | null = null;
+
+  let closestDistance = Infinity;
+
+  for (const contact of contacts) {
+    const normalizedContactName =
+      normalizeText(contact.name);
+
+    const distance =
+      levenshteinDistance(
+        normalizedTypedName,
+        normalizedContactName
+      );
+
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestContact = contact;
+    }
+  }
+
+  if (!closestContact) {
+    return null;
+  }
+
+  const maxDistance =
+    normalizedTypedName.length <= 4
+      ? 1
+      : 2;
+
+  if (closestDistance > maxDistance) {
+    return null;
+  }
+
+  return closestContact;
 }
 
 function parsePaymentCommand(
@@ -34,6 +143,15 @@ function parsePaymentCommand(
     message.toLowerCase();
 
   const matches: AgentMatch[] = [];
+
+  const exactContactIds =
+    new Set<string>();
+
+  const suggestions:
+    AgentSuggestion[] = [];
+
+  const suggestionContactIds =
+    new Set<string>();
 
   for (const contact of contacts) {
     const name =
@@ -82,6 +200,12 @@ function parsePaymentCommand(
       continue;
     }
 
+    if (exactContactIds.has(contact.id)) {
+      continue;
+    }
+
+    exactContactIds.add(contact.id);
+
     matches.push({
       recipient: {
         ...contact,
@@ -91,8 +215,116 @@ function parsePaymentCommand(
     });
   }
 
+  const commandParts =
+    normalizedMessage
+      .split(
+        /,|\band\b|\bve\b|\bile\b/i
+      )
+      .map((part) =>
+        part.trim()
+      )
+      .filter(Boolean);
+
+  for (const part of commandParts) {
+    const amountMatch =
+      part.match(
+        /(\d+(?:[.,]\d+)?)/
+      );
+
+    if (!amountMatch) {
+      continue;
+    }
+
+    const rawAmount =
+      amountMatch[1].replace(
+        ",",
+        "."
+      );
+
+    const amount =
+      Number(rawAmount);
+
+    if (
+      Number.isNaN(amount) ||
+      amount <= 0
+    ) {
+      continue;
+    }
+
+    const typedName =
+      part
+        .replace(
+          /(\d+(?:[.,]\d+)?)/,
+          ""
+        )
+        .replace(
+          /\b(usdc|usd|to|for|ya|ye|send|gönder)\b/gi,
+          ""
+        )
+        .replace(/\$/g, "")
+        .trim();
+
+    if (!typedName) {
+      continue;
+    }
+
+    const normalizedTypedName =
+      normalizeText(typedName);
+
+    const exactMatch =
+      contacts.some(
+        (contact) =>
+          normalizeText(
+            contact.name
+          ) === normalizedTypedName
+      );
+
+    if (exactMatch) {
+      continue;
+    }
+
+    const closestContact =
+      findClosestContact(
+        typedName
+      );
+
+    if (!closestContact) {
+      continue;
+    }
+
+    if (
+      exactContactIds.has(
+        closestContact.id
+      )
+    ) {
+      continue;
+    }
+
+    if (
+      suggestionContactIds.has(
+        closestContact.id
+      )
+    ) {
+      continue;
+    }
+
+    suggestionContactIds.add(
+      closestContact.id
+    );
+
+    suggestions.push({
+      typedName,
+      recipient: {
+        ...closestContact,
+        amount:
+          amount.toString(),
+      },
+    });
+  }
+
   return {
     matches,
+    suggestions,
   };
 }
 
@@ -112,6 +344,13 @@ export default function PartioAgent({
     null
   );
 
+  const [
+    duplicateMessage,
+    setDuplicateMessage,
+  ] = useState<string | null>(
+    null
+  );
+
   function handleSubmit(
     event: React.FormEvent<HTMLFormElement>
   ) {
@@ -127,6 +366,68 @@ export default function PartioAgent({
       );
 
     setResult(parsed);
+    setDuplicateMessage(null);
+  }
+
+  function handleAcceptSuggestion(
+    suggestion: AgentSuggestion
+  ) {
+    if (!result) {
+      return;
+    }
+
+    const alreadyAdded =
+      result.matches.some(
+        (match) =>
+          match.recipient.id ===
+          suggestion.recipient.id
+      );
+
+    if (alreadyAdded) {
+      setDuplicateMessage(
+        `${suggestion.recipient.name} is already in your payment draft.`
+      );
+
+      return;
+    }
+
+    setResult({
+      matches: [
+        ...result.matches,
+        {
+          recipient:
+            suggestion.recipient,
+        },
+      ],
+      suggestions:
+        result.suggestions.filter(
+          (item) =>
+            item.recipient.id !==
+            suggestion.recipient.id
+        ),
+    });
+
+    setDuplicateMessage(null);
+  }
+
+  function handleRejectSuggestion(
+    suggestion: AgentSuggestion
+  ) {
+    if (!result) {
+      return;
+    }
+
+    setResult({
+      ...result,
+      suggestions:
+        result.suggestions.filter(
+          (item) =>
+            item.recipient.id !==
+            suggestion.recipient.id
+        ),
+    });
+
+    setDuplicateMessage(null);
   }
 
   function handleOpenPayment() {
@@ -173,9 +474,10 @@ export default function PartioAgent({
           </h1>
 
           <p className="mt-4 max-w-2xl text-base leading-7 text-neutral-400">
-            Use natural language to prepare a payment.
-            PARTIO Agent will search your saved contacts
-            and create a payment draft for review.
+            Use natural language to prepare a
+            payment. PARTIO Agent will search
+            your saved contacts and create a
+            payment draft for review.
           </p>
         </div>
 
@@ -185,8 +487,7 @@ export default function PartioAgent({
           </p>
 
           <p className="mt-3 text-sm text-neutral-300">
-            Send 20 USDC to Jini, 25 USDC to Malto
-            and 10 USDC to Sherry.
+            malto 20, jini 10, sherry 5
           </p>
         </div>
 
@@ -202,6 +503,7 @@ export default function PartioAgent({
               );
 
               setResult(null);
+              setDuplicateMessage(null);
             }}
             placeholder="Tell PARTIO what you want to do..."
             rows={4}
@@ -222,62 +524,78 @@ export default function PartioAgent({
         </form>
 
         {result && (
-          <div className="mt-8 rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
-            <div className="mb-4">
-              <p className="text-sm font-semibold text-white">
-                Payment draft
-              </p>
+          <div className="mt-8 space-y-5">
+            <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
+              <div className="mb-4">
+                <p className="text-sm font-semibold text-white">
+                  Payment draft
+                </p>
 
-              <p className="mt-1 text-xs text-neutral-500">
-                Review the contacts and amounts found
-                by PARTIO Agent.
-              </p>
-            </div>
+                <p className="mt-1 text-xs text-neutral-500">
+                  Review the contacts and amounts
+                  found by PARTIO Agent.
+                </p>
+              </div>
 
-            {result.matches.length >
-            0 ? (
-              <div className="space-y-3">
-                {result.matches.map(
-                  ({ recipient }) => (
-                    <div
-                      key={
-                        recipient.id
-                      }
-                      className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-white">
-                          {
-                            recipient.name
-                          }
-                        </p>
+              {result.matches.length >
+              0 ? (
+                <div className="space-y-3">
+                  {result.matches.map(
+                    ({ recipient }) => (
+                      <div
+                        key={
+                          recipient.id
+                        }
+                        className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3"
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-white">
+                            {
+                              recipient.name
+                            }
+                          </p>
 
-                        <p className="mt-1 text-xs text-neutral-500">
+                          <p className="mt-1 text-xs text-neutral-500">
+                            {
+                              recipient.address.slice(
+                                0,
+                                6
+                              )
+                            }
+                            ...
+                            {
+                              recipient.address.slice(
+                                -4
+                              )
+                            }
+                          </p>
+                        </div>
+
+                        <p className="text-sm font-semibold text-white">
                           {
-                            recipient.address.slice(
-                              0,
-                              6
-                            )
-                          }
-                          ...
-                          {
-                            recipient.address.slice(
-                              -4
-                            )
-                          }
+                            recipient.amount
+                          }{" "}
+                          USDC
                         </p>
                       </div>
+                    )
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-neutral-400">
+                  No contacts have been added to
+                  the payment draft yet.
+                </p>
+              )}
 
-                      <p className="text-sm font-semibold text-white">
-                        {
-                          recipient.amount
-                        }{" "}
-                        USDC
-                      </p>
-                    </div>
-                  )
-                )}
+              {duplicateMessage && (
+                <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+                  {duplicateMessage}
+                </div>
+              )}
 
+              {result.matches.length >
+                0 && (
                 <div className="mt-5 flex justify-end">
                   <button
                     type="button"
@@ -289,20 +607,116 @@ export default function PartioAgent({
                     Open Payment →
                   </button>
                 </div>
+              )}
+            </div>
+
+            {result.suggestions.length >
+              0 && (
+              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5">
+                <div className="mb-4">
+                  <p className="text-sm font-semibold text-white">
+                    Did you mean?
+                  </p>
+
+                  <p className="mt-1 text-xs text-neutral-400">
+                    Confirm suggested contacts
+                    before adding them to your
+                    payment draft.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {result.suggestions.map(
+                    (suggestion) => (
+                      <div
+                        key={
+                          `${suggestion.recipient.id}-${suggestion.typedName}`
+                        }
+                        className="rounded-xl border border-neutral-800 bg-neutral-900 p-4"
+                      >
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm text-neutral-400">
+                              You typed{" "}
+                              <span className="font-medium text-white">
+                                {
+                                  suggestion.typedName
+                                }
+                              </span>
+                            </p>
+
+                            <p className="mt-1 text-base font-semibold text-white">
+                              Did you mean{" "}
+                              {
+                                suggestion
+                                  .recipient
+                                  .name
+                              }
+                              ?
+                            </p>
+
+                            <p className="mt-1 text-xs text-neutral-500">
+                              {
+                                suggestion
+                                  .recipient
+                                  .amount
+                              }{" "}
+                              USDC
+                            </p>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleRejectSuggestion(
+                                  suggestion
+                                )
+                              }
+                              className="rounded-lg border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-300 transition hover:border-neutral-500 hover:text-white"
+                            >
+                              No
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleAcceptSuggestion(
+                                  suggestion
+                                )
+                              }
+                              className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-neutral-200"
+                            >
+                              Yes
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
               </div>
-            ) : (
-              <p className="text-sm text-neutral-400">
-                I could not match this payment request
-                with your saved contacts.
-              </p>
             )}
+
+            {result.matches.length ===
+              0 &&
+              result.suggestions.length ===
+                0 && (
+                <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
+                  <p className="text-sm text-neutral-400">
+                    I could not match this payment
+                    request with your saved
+                    contacts.
+                  </p>
+                </div>
+              )}
           </div>
         )}
 
         <p className="mt-6 text-xs leading-5 text-neutral-500">
           The agent prepares payment drafts only.
-          No payment will be sent without your review
-          and confirmation.
+          No payment will be sent without your
+          review and confirmation.
         </p>
       </div>
     </section>
