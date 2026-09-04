@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 
 import {
   formatUnits,
-  type Address,
 } from "viem";
 
 import {
@@ -46,6 +45,9 @@ const GAS_BUFFER = 0.01;
 const AGENT_DRAFT_KEY =
   "partio_agent_draft";
 
+const AGENT_ACTION_KEY =
+  "partio_agent_action";
+
 type EthereumProvider = {
   request: (args: {
     method: string;
@@ -79,6 +81,13 @@ export default function ConnectWallet() {
     agentDraftLoaded,
     setAgentDraftLoaded,
   ] = useState(false);
+
+  const [
+    agentAction,
+    setAgentAction,
+  ] = useState<
+    "check" | "send" | null
+  >(null);
 
   useEffect(() => {
     setMounted(true);
@@ -154,6 +163,11 @@ export default function ConnectWallet() {
           AGENT_DRAFT_KEY
         );
 
+      const storedAction =
+        localStorage.getItem(
+          AGENT_ACTION_KEY
+        );
+
       if (!storedDraft) {
         setAgentDraftLoaded(true);
         return;
@@ -173,7 +187,12 @@ export default function ConnectWallet() {
           AGENT_DRAFT_KEY
         );
 
+        localStorage.removeItem(
+          AGENT_ACTION_KEY
+        );
+
         setAgentDraftLoaded(true);
+
         return;
       }
 
@@ -197,10 +216,26 @@ export default function ConnectWallet() {
         loadRecipients(
           validRecipients
         );
+
+        if (
+          storedAction === "send"
+        ) {
+          setAgentAction(
+            "send"
+          );
+        } else {
+          setAgentAction(
+            "check"
+          );
+        }
       }
 
       localStorage.removeItem(
         AGENT_DRAFT_KEY
+      );
+
+      localStorage.removeItem(
+        AGENT_ACTION_KEY
       );
     } catch (error) {
       console.error(
@@ -211,6 +246,10 @@ export default function ConnectWallet() {
       localStorage.removeItem(
         AGENT_DRAFT_KEY
       );
+
+      localStorage.removeItem(
+        AGENT_ACTION_KEY
+      );
     } finally {
       setAgentDraftLoaded(true);
     }
@@ -220,6 +259,27 @@ export default function ConnectWallet() {
     loadRecipients,
   ]);
 
+  useEffect(() => {
+    if (
+      agentAction !== "send" ||
+      recipients.length === 0
+    ) {
+      return;
+    }
+
+    const timeout =
+      setTimeout(() => {
+        setReviewOpen(true);
+        setAgentAction(null);
+      }, 300);
+
+    return () =>
+      clearTimeout(timeout);
+  }, [
+    agentAction,
+    recipients.length,
+  ]);
+
   async function refreshWalletBalance() {
     if (
       !address ||
@@ -227,6 +287,7 @@ export default function ConnectWallet() {
       chainId !== arcTestnet.id
     ) {
       setWalletBalance(0);
+
       return;
     }
 
@@ -346,11 +407,15 @@ export default function ConnectWallet() {
       window.ethereum as EthereumProvider & {
         on?: (
           event: string,
-          listener: (...args: unknown[]) => void
+          listener: (
+            ...args: unknown[]
+          ) => void
         ) => void;
         removeListener?: (
           event: string,
-          listener: (...args: unknown[]) => void
+          listener: (
+            ...args: unknown[]
+          ) => void
         ) => void;
       };
 
@@ -405,6 +470,7 @@ export default function ConnectWallet() {
     contact: Contact
   ) {
     handleDelete(contact);
+
     handleRemoveRecipient(
       contact.id
     );
@@ -442,6 +508,7 @@ export default function ConnectWallet() {
     resetTransaction();
     clearRecipients();
     setReviewOpen(false);
+    setAgentAction(null);
   }
 
   if (!mounted) {

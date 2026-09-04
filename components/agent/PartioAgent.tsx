@@ -430,7 +430,9 @@ export default function PartioAgent({
     setDuplicateMessage(null);
   }
 
-  function handleOpenPayment() {
+  function handlePaymentAction(
+    action: "check" | "send"
+  ) {
     if (
       !result ||
       result.matches.length === 0
@@ -450,6 +452,17 @@ export default function PartioAgent({
         recipients
       )
     );
+
+    if (action === "send") {
+      localStorage.setItem(
+        "partio_agent_action",
+        "send"
+      );
+    } else {
+      localStorage.removeItem(
+        "partio_agent_action"
+      );
+    }
 
     onOpenPayment();
   }
@@ -596,15 +609,29 @@ export default function PartioAgent({
 
               {result.matches.length >
                 0 && (
-                <div className="mt-5 flex justify-end">
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
                   <button
                     type="button"
-                    onClick={
-                      handleOpenPayment
+                    onClick={() =>
+                      handlePaymentAction(
+                        "check"
+                      )
+                    }
+                    className="rounded-xl border border-neutral-700 bg-neutral-900 px-6 py-3 text-sm font-semibold text-white transition hover:border-neutral-500 hover:bg-neutral-800"
+                  >
+                    Check Payment
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handlePaymentAction(
+                        "send"
+                      )
                     }
                     className="rounded-xl bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-neutral-200"
                   >
-                    Open Payment →
+                    Send →
                   </button>
                 </div>
               )}
