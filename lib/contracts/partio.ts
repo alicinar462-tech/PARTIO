@@ -1,5 +1,5 @@
 export const PARTIO_ADDRESS =
-  "0x9a43697e2dCB101f43E22D7047f7bEB8bF865dFc" as const;
+  "0xFaF3BD48Ff8837BEB19A28c08388f0Ee96944C99" as const;
 
 export const PARTIO_ABI = [
   {

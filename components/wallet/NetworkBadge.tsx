@@ -11,6 +11,7 @@ const NETWORK_NAMES: Record<number, string> = {
   137: "Polygon",
   11155111: "Sepolia",
   5042002: "ARC Testnet",
+  5042: "ARC Mainnet",
 };
 
 export default function NetworkBadge({

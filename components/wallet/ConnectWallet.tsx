@@ -15,7 +15,7 @@ import {
 
 import { injected } from "wagmi/connectors";
 
-import { arcTestnet } from "@/lib/wagmi";
+import { arcMainnet } from "@/lib/wagmi";
 
 import { Contact } from "@/types/contact";
 import { Recipient } from "@/types/recipient";
@@ -284,7 +284,7 @@ export default function ConnectWallet() {
     if (
       !address ||
       !window.ethereum ||
-      chainId !== arcTestnet.id
+      chainId !== arcMainnet.id
     ) {
       setWalletBalance(0);
 
@@ -537,7 +537,7 @@ export default function ConnectWallet() {
 
   const isCorrectNetwork =
     chainId ===
-    arcTestnet.id;
+    arcMainnet.id;
 
   return (
     <>
@@ -553,7 +553,7 @@ export default function ConnectWallet() {
         onSwitchNetwork={() =>
           switchChain({
             chainId:
-              arcTestnet.id,
+              arcMainnet.id,
           })
         }
         onDisconnect={() =>

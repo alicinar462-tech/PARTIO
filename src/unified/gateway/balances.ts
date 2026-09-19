@@ -5,7 +5,7 @@ export async function getUnifiedBalances(adapter: any) {
     sources: {
       adapter,
     },
-    networkType: "testnet",
+    networkType: "mainnet",
     includePending: true,
   });
 }

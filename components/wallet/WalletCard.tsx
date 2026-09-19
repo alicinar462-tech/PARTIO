@@ -1,6 +1,6 @@
 "use client";
 
-import { arcTestnet } from "@/lib/wagmi";
+import { arcMainnet } from "@/lib/wagmi";
 
 import NetworkBadge from "./NetworkBadge";
 import WalletAddress from "./WalletAddress";
@@ -23,7 +23,7 @@ export default function WalletCard({
   onDisconnect,
 }: WalletCardProps) {
   const isCorrectNetwork =
-    chainId === arcTestnet.id;
+    chainId === arcMainnet.id;
 
   return (
     <div className="partio-card rounded-2xl p-5 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
@@ -81,7 +81,7 @@ export default function WalletCard({
 
             <NetworkBadge
               chainId={chainId}
-              expectedChainId={arcTestnet.id}
+              expectedChainId={arcMainnet.id}
             />
           </div>
         </div>

@@ -12,18 +12,18 @@ import {
   useSwitchChain,
 } from "wagmi";
 
-import { arcTestnet } from "@/lib/wagmi";
+import { arcMainnet } from "@/lib/wagmi";
 
 import { createArcAdapter } from "./adapters/viem";
 import { depositUSDC } from "./deposit/deposit";
 
 const ARC_NATIVE_DECIMALS = 18;
 
-const ARC_CHAIN_ID_HEX = "0x4cef52";
+const ARC_CHAIN_ID_HEX = "0x13b2";
 
 type DepositChain =
-  | "Base_Sepolia"
-  | "Arbitrum_Sepolia";
+  | "Base"
+  | "Arbitrum";
 
 type EthereumProvider = {
   request: (args: {
@@ -61,7 +61,7 @@ export default function UnifiedBalanceCard() {
 
   const [depositChain, setDepositChain] =
     useState<DepositChain>(
-      "Base_Sepolia"
+      "Base"
     );
 
   const [
@@ -198,7 +198,7 @@ export default function UnifiedBalanceCard() {
     /*
      * The wallet value shown here is
      * specifically the native USDC balance
-     * on ARC Testnet.
+     * on ARC Mainnet.
      *
      * Never read the native balance while the
      * wallet is connected to Base or Arbitrum.
@@ -372,7 +372,7 @@ export default function UnifiedBalanceCard() {
     try {
       await switchChainAsync({
         chainId:
-          arcTestnet.id,
+          arcMainnet.id,
       });
 
       const switched =
@@ -470,8 +470,8 @@ export default function UnifiedBalanceCard() {
 
       /*
        * Circle deposit may have moved the
-       * browser wallet to Base Sepolia or
-       * Arbitrum Sepolia.
+       * browser wallet to Base or
+       * Arbitrum.
        *
        * Return to ARC before touching the
        * wallet balance again.
@@ -499,7 +499,7 @@ export default function UnifiedBalanceCard() {
 
       /*
        * The wallet provider has now confirmed
-       * ARC Testnet.
+       * ARC Mainnet.
        *
        * Give the wallet a short moment to
        * finish updating its internal state.
@@ -658,12 +658,12 @@ export default function UnifiedBalanceCard() {
             }
             className="w-full rounded-lg border border-slate-700 bg-[#080d2d]/80 px-4 py-3 text-white outline-none transition focus:border-indigo-500 disabled:opacity-50"
           >
-            <option value="Base_Sepolia">
-              Base Sepolia
+            <option value="Base">
+              Base
             </option>
 
-            <option value="Arbitrum_Sepolia">
-              Arbitrum Sepolia
+            <option value="Arbitrum">
+              Arbitrum
             </option>
           </select>
         </div>

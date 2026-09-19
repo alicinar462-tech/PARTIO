@@ -47,5 +47,12 @@ export default defineConfig({
       url: configVariable("ARC_RPC_URL"),
       accounts: [configVariable("ARC_PRIVATE_KEY")],
     },
+
+    arcMainnet: {
+      type: "http",
+      chainType: "l1",
+      url: configVariable("ARC_MAINNET_RPC_URL"),
+      accounts: [configVariable("ARC_PRIVATE_KEY")],
+    },
   },
 });

@@ -6,7 +6,7 @@ const kit = new AppKit();
 export async function depositUSDC(
   adapter: any,
   amount: string = "1.00",
-  chainName: "Base_Sepolia" | "Arbitrum_Sepolia" = "Base_Sepolia"
+  chainName: "Base" | "Arbitrum" = "Base"
 ) {
   const chain = resolveChainIdentifier(chainName);
 

@@ -128,7 +128,7 @@ function getReadableError(
     message.includes("chain")
   ) {
     return new Error(
-      "Please switch to ARC Testnet."
+      "Please switch to ARC Mainnet."
     );
   }
 
@@ -287,7 +287,7 @@ export function usePartition(
           adapter,
 
           chain:
-            "Arc_Testnet",
+            "Arc",
 
           recipientAddress:
             PARTIO_ADDRESS,

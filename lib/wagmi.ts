@@ -2,10 +2,10 @@ import { createConfig, http } from "wagmi";
 import { injected } from "wagmi/connectors";
 import { defineChain } from "viem";
 
-export const arcTestnet = defineChain({
-  id: 5042002,
-  name: "ARC Testnet",
-  network: "arc-testnet",
+export const arcMainnet = defineChain({
+  id: 5042,
+  name: "Arc Mainnet",
+  network: "arc-mainnet",
   nativeCurrency: {
     name: "USDC",
     symbol: "USDC",
@@ -13,28 +13,27 @@ export const arcTestnet = defineChain({
   },
   rpcUrls: {
     default: {
-      http: ["https://rpc.blockdaemon.testnet.arc.io"],
+      http: ["https://rpc.mainnet.arc.io"],
     },
   },
   blockExplorers: {
     default: {
       name: "ArcScan",
-      url: "https://testnet.arcscan.app",
+      url: "https://arcscan.app",
     },
   },
-  testnet: true,
 });
 
 export const config = createConfig({
-  chains: [arcTestnet],
+  chains: [arcMainnet],
   connectors: [
     injected({
       shimDisconnect: true,
     }),
   ],
   transports: {
-    [arcTestnet.id]: http(
-      "https://rpc.blockdaemon.testnet.arc.io"
+    [arcMainnet.id]: http(
+      "https://rpc.mainnet.arc.io"
     ),
   },
 });
