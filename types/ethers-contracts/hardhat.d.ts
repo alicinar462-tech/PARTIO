@@ -10,29 +10,29 @@ import * as Contracts from "./index.js";
 
 declare module "@nomicfoundation/hardhat-ethers/types" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
-  getContractFactory(name: 'PartioV2', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.PartioV2__factory>
+  getContractFactory(name: 'MockUSDC', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.MockUSDC__factory>
+getContractFactory(name: 'PartioV2', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.PartioV2__factory>
+getContractFactory(name: 'PartioVault', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.PartioVault__factory>
 getContractFactory(name: 'IERC20', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IERC20__factory>
 getContractFactory(name: 'Partio', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.Partio__factory>
-getContractFactory(name: 'MockUSDC', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.MockUSDC__factory>
-getContractFactory(name: 'PartioVault', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.PartioVault__factory>
 
-  getContractAt(name: 'PartioV2', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.PartioV2>
+  getContractAt(name: 'MockUSDC', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.MockUSDC>
+getContractAt(name: 'PartioV2', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.PartioV2>
+getContractAt(name: 'PartioVault', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.PartioVault>
 getContractAt(name: 'IERC20', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IERC20>
 getContractAt(name: 'Partio', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Partio>
-getContractAt(name: 'MockUSDC', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.MockUSDC>
-getContractAt(name: 'PartioVault', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.PartioVault>
 
-  deployContract(name: 'PartioV2', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.PartioV2>
+  deployContract(name: 'MockUSDC', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.MockUSDC>
+deployContract(name: 'PartioV2', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.PartioV2>
+deployContract(name: 'PartioVault', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.PartioVault>
 deployContract(name: 'IERC20', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IERC20>
 deployContract(name: 'Partio', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Partio>
-deployContract(name: 'MockUSDC', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.MockUSDC>
-deployContract(name: 'PartioVault', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.PartioVault>
 
-  deployContract(name: 'PartioV2', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.PartioV2>
+  deployContract(name: 'MockUSDC', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.MockUSDC>
+deployContract(name: 'PartioV2', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.PartioV2>
+deployContract(name: 'PartioVault', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.PartioVault>
 deployContract(name: 'IERC20', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IERC20>
 deployContract(name: 'Partio', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Partio>
-deployContract(name: 'MockUSDC', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.MockUSDC>
-deployContract(name: 'PartioVault', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.PartioVault>
 
     // default types
     getContractFactory(

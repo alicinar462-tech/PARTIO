@@ -7,6 +7,8 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract PartioVault {
     using SafeERC20 for IERC20;
 
+    uint256 public constant MAX_RECIPIENTS = 50;
+
     IERC20 public immutable usdc;
     address public immutable owner;
 
@@ -20,6 +22,7 @@ contract PartioVault {
     error InsufficientBalance();
     error AlreadyExecuted();
     error TransferFailed();
+    error TooManyRecipients();
 
     event PaymentExecuted(
         address indexed owner,
@@ -67,6 +70,10 @@ contract PartioVault {
 
         if (recipients.length == 0) {
             revert InvalidRecipients();
+        }
+
+        if (recipients.length > MAX_RECIPIENTS) {
+            revert TooManyRecipients();
         }
 
         if (recipients.length != amounts.length) {

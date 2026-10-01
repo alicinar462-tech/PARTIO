@@ -6,18 +6,20 @@ import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, Typed
   
 
   export interface PartioVaultInterface extends Interface {
-    getFunction(nameOrSignature: "balance" | "execute" | "executed" | "owner" | "refund" | "usdc"): FunctionFragment;
+    getFunction(nameOrSignature: "MAX_RECIPIENTS" | "balance" | "execute" | "executed" | "owner" | "refund" | "usdc"): FunctionFragment;
 
     getEvent(nameOrSignatureOrTopic: "PaymentExecuted" | "Refunded"): EventFragment;
 
-    encodeFunctionData(functionFragment: 'balance', values?: undefined): string;
+    encodeFunctionData(functionFragment: 'MAX_RECIPIENTS', values?: undefined): string;
+encodeFunctionData(functionFragment: 'balance', values?: undefined): string;
 encodeFunctionData(functionFragment: 'execute', values: [AddressLike[], BigNumberish[], BigNumberish]): string;
 encodeFunctionData(functionFragment: 'executed', values?: undefined): string;
 encodeFunctionData(functionFragment: 'owner', values?: undefined): string;
 encodeFunctionData(functionFragment: 'refund', values?: undefined): string;
 encodeFunctionData(functionFragment: 'usdc', values?: undefined): string;
 
-    decodeFunctionResult(functionFragment: 'balance', data: BytesLike): Result;
+    decodeFunctionResult(functionFragment: 'MAX_RECIPIENTS', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'balance', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'execute', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'executed', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'owner', data: BytesLike): Result;
@@ -84,6 +86,14 @@ decodeFunctionResult(functionFragment: 'usdc', data: BytesLike): Result;
 
     
     
+    MAX_RECIPIENTS: TypedContractMethod<
+      [],
+      [bigint],
+      'view'
+    >
+    
+
+    
     balance: TypedContractMethod<
       [],
       [bigint],
@@ -134,7 +144,12 @@ decodeFunctionResult(functionFragment: 'usdc', data: BytesLike): Result;
 
     getFunction<T extends ContractMethod = ContractMethod>(key: string | FunctionFragment): T;
 
-    getFunction(nameOrSignature: 'balance'): TypedContractMethod<
+    getFunction(nameOrSignature: 'MAX_RECIPIENTS'): TypedContractMethod<
+      [],
+      [bigint],
+      'view'
+    >;
+getFunction(nameOrSignature: 'balance'): TypedContractMethod<
       [],
       [bigint],
       'view'
