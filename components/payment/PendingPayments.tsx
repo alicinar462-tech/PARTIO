@@ -22,9 +22,7 @@ import {
 } from "@/lib/contracts/partio";
 
 import { createArcAdapter } from "@/src/unified/adapters/viem";
-
 import { getUnifiedBalances } from "@/src/unified/gateway/balances";
-
 import { spendUSDC } from "@/src/unified/spend/spend";
 
 type PendingPayment = {
@@ -41,7 +39,11 @@ type PendingPayment = {
 type CompletedPayment = {
   paymentId: string;
   totalAmount: string;
-  recipientCount: number;
+  recipients: {
+    name: string;
+    address: string;
+    amount: string;
+  }[];
   txHash: string;
 };
 
@@ -118,6 +120,24 @@ function getStorageKey(
   address: Address
 ) {
   return `${STORAGE_KEY}_${address.toLowerCase()}`;
+}
+
+function shortenAddress(
+  address: string
+) {
+  return `${address.slice(
+    0,
+    6
+  )}...${address.slice(-4)}`;
+}
+
+function shortenHash(
+  hash: string
+) {
+  return `${hash.slice(
+    0,
+    10
+  )}...${hash.slice(-8)}`;
 }
 
 export default function PendingPayments() {
@@ -848,8 +868,8 @@ export default function PendingPayments() {
           payment.paymentId,
         totalAmount:
           payment.totalAmount,
-        recipientCount:
-          payment.recipients.length,
+        recipients:
+          payment.recipients,
         txHash:
           executeHash,
       });
@@ -986,40 +1006,100 @@ export default function PendingPayments() {
       {completedPayment && (
         <section className="mt-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5">
           <div className="flex items-start gap-3">
-            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
+            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
               ✓
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-white">
-                Payment Completed
-              </p>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-white">
+                    Payment Completed
+                  </p>
 
-              <p className="mt-1 text-xs text-neutral-400">
-                {
-                  completedPayment.totalAmount
-                }{" "}
-                USDC sent to{" "}
-                {
-                  completedPayment.recipientCount
-                }{" "}
-                recipient
-                {
-                  completedPayment.recipientCount !==
-                  1
-                    ? "s"
-                    : ""
-                }.
-              </p>
+                  <p className="mt-1 text-xs text-neutral-400">
+                    {
+                      completedPayment.totalAmount
+                    }{" "}
+                    USDC sent successfully.
+                  </p>
+                </div>
 
-              <a
-                href={`https://explorer.arc.io/tx/${completedPayment.txHash}`}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-flex rounded-lg border border-neutral-700 px-3 py-2 text-xs font-medium text-neutral-200 transition hover:border-neutral-500 hover:bg-neutral-800"
+                <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-emerald-400">
+                  Success
+                </span>
+              </div>
+
+              <div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-950/60">
+                <div className="border-b border-neutral-800 px-4 py-3">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-500">
+                    Recipients
+                  </p>
+                </div>
+
+                <div className="divide-y divide-neutral-800">
+                  {completedPayment.recipients.map(
+                    (recipient, index) => (
+                      <div
+                        key={`${recipient.address}-${index}`}
+                        className="flex items-center justify-between gap-4 px-4 py-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-medium text-white">
+                            {recipient.name ||
+                              shortenAddress(
+                                recipient.address
+                              )}
+                          </p>
+
+                          <p className="mt-0.5 truncate text-[11px] text-neutral-500">
+                            {shortenAddress(
+                              recipient.address
+                            )}
+                          </p>
+                        </div>
+
+                        <span className="shrink-0 text-xs font-medium text-white">
+                          {recipient.amount} USDC
+                        </span>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-3 rounded-xl border border-neutral-800 bg-neutral-950/60 px-4 py-3">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-500">
+                  Transaction
+                </p>
+
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <span className="truncate font-mono text-xs text-neutral-300">
+                    {shortenHash(
+                      completedPayment.txHash
+                    )}
+                  </span>
+
+                  <a
+                    href={`https://explorer.arc.io/tx/${completedPayment.txHash}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="shrink-0 text-xs font-medium text-white underline decoration-neutral-600 underline-offset-4 transition hover:decoration-white"
+                  >
+                    View on Arc Explorer →
+                  </a>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  window.location.reload()
+                }
+                className="mt-4 w-full rounded-xl bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-neutral-200"
               >
-                View on Arc Explorer →
-              </a>
+                New Payment
+              </button>
             </div>
           </div>
         </section>

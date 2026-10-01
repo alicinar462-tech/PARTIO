@@ -99,8 +99,6 @@ const PARTIO_VAULT_ABI = [
   },
 ] as const;
 
-const MICRO_USDC = 1n;
-
 const UNIFIED_RESERVES = [
   10_000n,
   20_000n,
@@ -508,8 +506,6 @@ export function usePartition(
   }
 
   async function partition() {
-    console.clear();
-
     console.log(
       "========== PARTIO V2 PAYMENT START =========="
     );
@@ -548,11 +544,44 @@ export function usePartition(
         );
       }
 
+      const walletAddress =
+        address.toLowerCase();
+
+      const selfPayment =
+        validRecipients.some(
+          (recipient) =>
+            recipient.address.toLowerCase() ===
+            walletAddress
+        );
+
+      if (selfPayment) {
+        throw new Error(
+          "You cannot send a payment to your connected wallet."
+        );
+      }
+
       const recipientAddresses =
         validRecipients.map(
           (recipient) =>
             recipient.address
         );
+
+      const uniqueRecipientAddresses =
+        new Set(
+          recipientAddresses.map(
+            (recipientAddress) =>
+              recipientAddress.toLowerCase()
+          )
+        );
+
+      if (
+        uniqueRecipientAddresses.size !==
+        recipientAddresses.length
+      ) {
+        throw new Error(
+          "The same wallet address cannot be added more than once."
+        );
+      }
 
       const amounts =
         validRecipients.map(

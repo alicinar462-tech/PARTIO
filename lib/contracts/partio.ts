@@ -1,63 +1,5 @@
-export const PARTIO_V1_ADDRESS =
-  "0xFaF3BD48Ff8837BEB19A28c08388f0Ee96944C99" as const;
-
 export const PARTIO_V2_ADDRESS =
   "0xaF60A431824ABd26c18b8593a2b44FFef2624182" as const;
-
-/* =========================================================
-   PARTIO V1
-   Currently deployed and working on Arc Mainnet
-   ========================================================= */
-
-export const PARTIO_V1_ABI = [
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "usdcAddress",
-        type: "address",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "constructor",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address[]",
-        name: "recipients",
-        type: "address[]",
-      },
-      {
-        internalType: "uint256[]",
-        name: "amounts",
-        type: "uint256[]",
-      },
-      {
-        internalType: "uint256",
-        name: "totalAmount",
-        type: "uint256",
-      },
-    ],
-    name: "partition",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "usdc",
-    outputs: [
-      {
-        internalType: "contract IERC20",
-        name: "",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-] as const;
 
 /* =========================================================
    PARTIO V2 FACTORY
@@ -375,7 +317,7 @@ export const PARTIO_VAULT_ABI = [
 ] as const;
 
 /* =========================================================
-   ACTIVE V2
+   ACTIVE PARTIO CONTRACT
    Deployed on Arc Mainnet
    ========================================================= */
 

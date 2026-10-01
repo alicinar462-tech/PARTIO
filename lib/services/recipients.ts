@@ -5,8 +5,14 @@ export function addRecipient(
   recipients: Recipient[],
   contact: Contact
 ): Recipient[] {
+  const contactAddress =
+    contact.address.toLowerCase();
+
   const exists = recipients.some(
-    (recipient) => recipient.id === contact.id
+    (recipient) =>
+      recipient.id === contact.id ||
+      recipient.address.toLowerCase() ===
+        contactAddress
   );
 
   if (exists) {
