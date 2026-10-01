@@ -3,12 +3,14 @@
 /* eslint-disable */
 import type * as partioSol from './Partio.sol/index.js';
 export type { partioSol };
-import type * as partioV2Sol from './PartioV2.sol/index.js';
-export type { partioV2Sol };
+export type { MockUSDC } from './MockUSDC.js';
+export type { PartioV2 } from './PartioV2.js';
+export type { PartioVault } from './PartioVault.js';
 export * as factories from './factories/index.js';
+export { PartioV2__factory } from './factories/PartioV2__factory.js';
 export type { IERC20 } from './Partio.sol/IERC20.js';
 export { IERC20__factory } from './factories/Partio.sol/IERC20__factory.js';
 export type { Partio } from './Partio.sol/Partio.js';
 export { Partio__factory } from './factories/Partio.sol/Partio__factory.js';
-export type { PartioV2 } from './PartioV2.sol/PartioV2.js';
-export { PartioV2__factory } from './factories/PartioV2.sol/PartioV2__factory.js';
+export { MockUSDC__factory } from './factories/MockUSDC__factory.js';
+export { PartioVault__factory } from './factories/PartioVault__factory.js';

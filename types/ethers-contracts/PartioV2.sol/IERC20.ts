@@ -6,15 +6,17 @@ import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, Typed
   
 
   export interface IERC20Interface extends Interface {
-    getFunction(nameOrSignature: "balanceOf" | "transfer"): FunctionFragment;
+    getFunction(nameOrSignature: "balanceOf" | "transfer" | "transferFrom"): FunctionFragment;
 
     
 
     encodeFunctionData(functionFragment: 'balanceOf', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'transfer', values: [AddressLike, BigNumberish]): string;
+encodeFunctionData(functionFragment: 'transferFrom', values: [AddressLike, AddressLike, BigNumberish]): string;
 
     decodeFunctionResult(functionFragment: 'balanceOf', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'transfer', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'transferFrom', data: BytesLike): Result;
   }
 
   
@@ -68,6 +70,14 @@ decodeFunctionResult(functionFragment: 'transfer', data: BytesLike): Result;
     >
     
 
+    
+    transferFrom: TypedContractMethod<
+      [from: AddressLike, to: AddressLike, value: BigNumberish, ],
+      [boolean],
+      'nonpayable'
+    >
+    
+
 
     getFunction<T extends ContractMethod = ContractMethod>(key: string | FunctionFragment): T;
 
@@ -78,6 +88,11 @@ decodeFunctionResult(functionFragment: 'transfer', data: BytesLike): Result;
     >;
 getFunction(nameOrSignature: 'transfer'): TypedContractMethod<
       [to: AddressLike, value: BigNumberish, ],
+      [boolean],
+      'nonpayable'
+    >;
+getFunction(nameOrSignature: 'transferFrom'): TypedContractMethod<
+      [from: AddressLike, to: AddressLike, value: BigNumberish, ],
       [boolean],
       'nonpayable'
     >;

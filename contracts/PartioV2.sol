@@ -1,105 +1,57 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-interface IERC20 {
-    function transfer(address to, uint256 value)
-        external
-        returns (bool);
-
-    function balanceOf(address account)
-        external
-        view
-        returns (uint256);
-}
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./PartioVault.sol";
 
 contract PartioV2 {
     IERC20 public immutable usdc;
 
-    error InvalidRecipients();
-    error InvalidAmounts();
-    error TransferFailed(address recipient);
+    uint256 public paymentCount;
+    mapping(uint256 => address) public payments;
 
-    event PaymentSent(
-        address indexed recipient,
-        uint256 amount
-    );
+    error InvalidUSDC();
 
-    event PaymentPartitioned(
-        uint256 totalAmount,
-        uint256 recipientCount
+    event PaymentCreated(
+        uint256 indexed paymentId,
+        address indexed owner,
+        address indexed vault
     );
 
     constructor(address usdcAddress) {
+        if (usdcAddress == address(0)) revert InvalidUSDC();
+
         usdc = IERC20(usdcAddress);
     }
 
-    function partition(
-        address[] calldata recipients,
-        uint256[] calldata amounts
-    ) external {
-        if (recipients.length == 0)
-            revert InvalidRecipients();
+    function createPayment()
+        external
+        returns (uint256 paymentId, address vault)
+    {
+        paymentId = paymentCount;
 
-        if (recipients.length != amounts.length)
-            revert InvalidAmounts();
-
-        uint256 total;
-
-        unchecked {
-            for (uint256 i; i < amounts.length; ++i) {
-                if (
-                    recipients[i] == address(0)
-                ) {
-                    revert InvalidRecipients();
-                }
-
-                if (amounts[i] == 0) {
-                    revert InvalidAmounts();
-                }
-
-                total += amounts[i];
-            }
-        }
-
-        require(
-            usdc.balanceOf(address(this)) >= total,
-            "INSUFFICIENT_USDC"
+        PartioVault newVault = new PartioVault(
+            address(usdc),
+            msg.sender
         );
 
-        unchecked {
-            for (uint256 i; i < recipients.length; ++i) {
-                bool success =
-                    usdc.transfer(
-                        recipients[i],
-                        amounts[i]
-                    );
+        vault = address(newVault);
 
-                if (!success) {
-                    revert TransferFailed(
-                        recipients[i]
-                    );
-                }
+        payments[paymentId] = vault;
+        paymentCount++;
 
-                emit PaymentSent(
-                    recipients[i],
-                    amounts[i]
-                );
-            }
-        }
-
-        emit PaymentPartitioned(
-            total,
-            recipients.length
+        emit PaymentCreated(
+            paymentId,
+            msg.sender,
+            vault
         );
     }
 
-    function balance()
+    function getPaymentVault(uint256 paymentId)
         external
         view
-        returns (uint256)
+        returns (address)
     {
-        return usdc.balanceOf(
-            address(this)
-        );
+        return payments[paymentId];
     }
 }

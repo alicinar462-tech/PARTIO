@@ -264,12 +264,12 @@ export default function ReviewModal({
                     </button>
 
                     <a
-                      href={`https://testnet.arcscan.app/tx/${txHash}`}
+                      href={`https://explorer.arc.io/tx/${txHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
                     >
-                      View on ArcScan
+                      View on Arc Explorer
                     </a>
                   </div>
                 </div>

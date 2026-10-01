@@ -3,18 +3,18 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 const USDC =
   "0x3600000000000000000000000000000000000000";
 
-const PartioModule = buildModule(
-  "PartioModule",
+const PartioV2Module = buildModule(
+  "PartioV2Module",
   (m) => {
-    const partio = m.contract(
-      "Partio",
+    const partioV2 = m.contract(
+      "PartioV2",
       [USDC]
     );
 
     return {
-      partio,
+      partioV2,
     };
   }
 );
 
-export default PartioModule;
+export default PartioV2Module;

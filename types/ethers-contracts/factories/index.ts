@@ -2,4 +2,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export * as partioSol from './Partio.sol/index.js';
-export * as partioV2Sol from './PartioV2.sol/index.js';
+export { MockUSDC__factory } from './MockUSDC__factory.js';
+export { PartioV2__factory } from './PartioV2__factory.js';
+export { PartioVault__factory } from './PartioVault__factory.js';

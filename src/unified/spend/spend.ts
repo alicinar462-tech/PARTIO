@@ -9,11 +9,11 @@ export async function spendUSDC(
   amount: string
 ) {
   const chain =
-    resolveChainIdentifier("Arc_Testnet");
+    resolveChainIdentifier("Arc");
 
   if (chain.type !== "evm") {
     throw new Error(
-      "Arc_Testnet is not an EVM chain."
+      "Arc is not an EVM chain."
     );
   }
 
@@ -32,7 +32,7 @@ export async function spendUSDC(
 
       to: {
         adapter,
-        chain: "Arc_Testnet",
+        chain: "Arc",
         recipientAddress,
       },
     });
