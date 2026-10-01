@@ -7,6 +7,7 @@ import { useAccount } from "wagmi";
 import ConnectWallet from "../components/wallet/ConnectWallet";
 import FeedbackForm from "../components/feedback/FeedbackForm";
 import PartioAgent from "../components/agent/PartioAgent";
+import PendingPayments from "../components/payment/PendingPayments";
 
 export default function Home() {
   const { isConnected } = useAccount();
@@ -77,7 +78,11 @@ export default function Home() {
             <ConnectWallet />
 
             {walletReady && (
-              <FeedbackForm />
+              <>
+                <PendingPayments />
+
+                <FeedbackForm />
+              </>
             )}
           </>
         ) : (
