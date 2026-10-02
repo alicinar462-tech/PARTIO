@@ -182,6 +182,12 @@ export const PARTIO_VAULT_ABI = [
   },
 
   {
+    inputs: [],
+    name: "TooManyRecipients",
+    type: "error",
+  },
+
+  {
     anonymous: false,
     inputs: [
       {
