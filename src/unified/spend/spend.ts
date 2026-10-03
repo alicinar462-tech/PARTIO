@@ -19,7 +19,33 @@ export async function spendUSDC(
 
   await adapter.ensureChain(chain);
 
-  console.log("Spend Started");
+  console.log(
+    "========== CIRCLE SPEND START =========="
+  );
+
+  console.log(
+    "[CIRCLE SPEND] Requested amount:",
+    amount
+  );
+
+  console.log(
+    "[CIRCLE SPEND] Token:",
+    "USDC"
+  );
+
+  console.log(
+    "[CIRCLE SPEND] Destination chain:",
+    "Arc"
+  );
+
+  console.log(
+    "[CIRCLE SPEND] Destination:",
+    recipientAddress
+  );
+
+  console.log(
+    "[CIRCLE SPEND] Calling unifiedBalance.spend()..."
+  );
 
   const result =
     await kit.unifiedBalance.spend({
@@ -37,8 +63,28 @@ export async function spendUSDC(
       },
     });
 
-  console.log("Spend Result");
-  console.log(result);
+  console.log(
+    "[CIRCLE SPEND] spend() returned:"
+  );
+
+  console.dir(
+    result,
+    {
+      depth: null,
+    }
+  );
+
+  console.log(
+    "[CIRCLE SPEND] Result keys:",
+    result &&
+      typeof result === "object"
+      ? Object.keys(result)
+      : []
+  );
+
+  console.log(
+    "========== CIRCLE SPEND END =========="
+  );
 
   return result;
 }

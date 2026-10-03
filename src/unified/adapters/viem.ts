@@ -4,21 +4,39 @@ import {
   Base,
 } from "@circle-fin/app-kit/chains";
 
-import { createViemAdapterFromProvider } from "@circle-fin/adapter-viem-v2";
+import {
+  createViemAdapterFromProvider,
+} from "@circle-fin/adapter-viem-v2";
+
+import type {
+  EIP1193Provider,
+} from "viem";
+
 
 declare global {
   interface Window {
-    ethereum?: any;
+    ethereum?: EIP1193Provider;
   }
 }
 
-export async function createArcAdapter() {
-  if (!window.ethereum) {
-    throw new Error("Wallet provider not found.");
+
+export async function createArcAdapter(
+  provider?: EIP1193Provider
+) {
+
+  const walletProvider =
+    provider ?? window.ethereum;
+
+  if (!walletProvider) {
+    throw new Error(
+      "Wallet provider not found."
+    );
   }
 
+
   return await createViemAdapterFromProvider({
-    provider: window.ethereum,
+    provider: walletProvider,
+
     capabilities: {
       supportedChains: [
         Base,
@@ -27,4 +45,5 @@ export async function createArcAdapter() {
       ],
     },
   });
+
 }

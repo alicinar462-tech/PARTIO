@@ -365,8 +365,35 @@ export function usePartition(
       });
 
       return true;
-    } catch {
-      return false;
+    } catch (error) {
+      const unifiedError =
+        error as {
+          code?: unknown;
+          name?: unknown;
+        };
+
+      const code = unifiedError.code;
+
+      const name =
+        typeof unifiedError.name === "string"
+          ? unifiedError.name
+          : "";
+
+      const spendRejected =
+        code === 9001 ||
+        code === 9002 ||
+        code === 9003 ||
+        code === 6001 ||
+        name === "BALANCE_INSUFFICIENT_TOKEN" ||
+        name === "BALANCE_INSUFFICIENT_GAS" ||
+        name === "BALANCE_INSUFFICIENT_ALLOWANCE" ||
+        name === "LIQUIDITY_INSUFFICIENT";
+
+      if (spendRejected) {
+        return false;
+      }
+
+      throw error;
     }
   }
 
@@ -758,8 +785,22 @@ export function usePartition(
        * --------------------------------------------------
        */
 
+      console.time(
+        "[PARTIO] createArcAdapter"
+      );
+
       const adapter =
         await createArcAdapter();
+
+      console.timeEnd(
+        "[PARTIO] createArcAdapter"
+      );
+
+      /*
+       * --------------------------------------------------
+       * Read Unified Balance
+       * --------------------------------------------------
+       */
 
       const unifiedBalance =
         await getUnifiedBalances(
