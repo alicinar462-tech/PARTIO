@@ -1,5 +1,7 @@
 "use client";
+
 import { useEffect, useRef, useState } from "react";
+
 import {
   formatUnits,
   parseUnits,
@@ -7,18 +9,25 @@ import {
   type Address,
   type EIP1193Provider,
 } from "viem";
+
 import {
   useAccount,
   useConnectorClient,
   useWriteContract,
 } from "wagmi";
+
 import { AppKit } from "@circle-fin/app-kit";
+
 import {
   PARTIO_VAULT_ABI,
 } from "@/lib/contracts/partio";
+
 import { createArcAdapter } from "@/src/unified/adapters/viem";
+
 import { getUnifiedBalances } from "@/src/unified/gateway/balances";
+
 import { spendUSDC } from "@/src/unified/spend/spend";
+
 type PendingPayment = {
   paymentId: string;
   vaultAddress: string;
@@ -29,6 +38,7 @@ type PendingPayment = {
   }[];
   totalAmount: string;
 };
+
 type CompletedPayment = {
   paymentId: string;
   totalAmount: string;
@@ -39,6 +49,7 @@ type CompletedPayment = {
   }[];
   txHash: string;
 };
+
 type PaymentStatus =
   | "checking"
   | "waiting"
@@ -46,11 +57,15 @@ type PaymentStatus =
   | "funded"
   | "executed"
   | "error";
+
 const STORAGE_KEY =
   "partio_pending_payments";
+
 const USDC_DECIMALS = 6;
+
 const USDC_ADDRESS =
   "0x3600000000000000000000000000000000000000" as const;
+
 const USDC_ABI = [
   {
     type: "function",
@@ -91,6 +106,7 @@ const USDC_ABI = [
     ],
   },
 ] as const;
+
 const UNIFIED_RESERVES = [
   10_000n,
   20_000n,
@@ -100,12 +116,15 @@ const UNIFIED_RESERVES = [
   500_000n,
   1_000_000n,
 ] as const;
+
 const kit = new AppKit();
+
 function getStorageKey(
   address: Address
 ) {
   return `${STORAGE_KEY}_${address.toLowerCase()}`;
 }
+
 function shortenAddress(
   address: string
 ) {
@@ -114,6 +133,7 @@ function shortenAddress(
     6
   )}...${address.slice(-4)}`;
 }
+
 function shortenHash(
   hash: string
 ) {
@@ -122,79 +142,97 @@ function shortenHash(
     10
   )}...${hash.slice(-8)}`;
 }
+
 export default function PendingPayments() {
   const {
     address,
     connector,
   } = useAccount();
+
   const {
     data: connectorClient,
   } = useConnectorClient();
+
   const {
     writeContractAsync,
   } = useWriteContract();
+
   const [
     payments,
     setPayments,
   ] = useState<PendingPayment[]>([]);
+
   const [
     statuses,
     setStatuses,
   ] = useState<
     Record<string, PaymentStatus>
   >({});
+
   const [
     balances,
     setBalances,
   ] = useState<
     Record<string, string>
   >({});
+
   const [
     loadingPayment,
     setLoadingPayment,
   ] = useState<string | null>(
     null
   );
+
   const [
     error,
     setError,
   ] = useState<string | null>(
     null
   );
+
   const [
     completedPayment,
     setCompletedPayment,
   ] = useState<CompletedPayment | null>(
     null
   );
+
   const inFlightPayments =
     useRef(new Set<string>());
+
   function removePayment(
     paymentId: string
   ) {
     if (!address) {
       return;
     }
+
     const key =
       getStorageKey(address);
+
     try {
       const stored =
         localStorage.getItem(key);
+
       if (!stored) {
         return;
       }
+
       const parsed =
         JSON.parse(stored) as PendingPayment[];
+
       const filtered =
         parsed.filter(
           (payment) =>
             payment.paymentId !==
             paymentId
         );
+
       localStorage.setItem(
         key,
         JSON.stringify(filtered)
       );
+
       setPayments(filtered);
     } catch (err) {
       console.error(
@@ -203,33 +241,44 @@ export default function PendingPayments() {
       );
     }
   }
+
   async function refreshPayments() {
     if (!address || !connectorClient) {
       return;
     }
+
     const key =
       getStorageKey(address);
+
     try {
       const stored =
         localStorage.getItem(key);
+
       if (!stored) {
         setPayments([]);
         setBalances({});
         return;
       }
+
       const parsed =
         JSON.parse(stored) as PendingPayment[];
+
       setPayments(parsed);
+
       const walletClient =
         connectorClient.extend(
           publicActions
         );
+
       const nextBalances:
         Record<string, string> = {};
+
       const nextStatuses:
         Record<string, PaymentStatus> = {};
+
       const remainingPayments:
         PendingPayment[] = [];
+
       for (
         const payment of parsed
       ) {
@@ -247,6 +296,7 @@ export default function PendingPayments() {
                 functionName:
                   "balance",
               }),
+
               walletClient.readContract({
                 address:
                   payment.vaultAddress as Address,
@@ -256,26 +306,32 @@ export default function PendingPayments() {
                   "executed",
               }),
             ]);
+
           const formattedBalance =
             formatUnits(
               balance,
               USDC_DECIMALS
             );
+
           nextBalances[
             payment.paymentId
           ] =
             formattedBalance;
+
           if (executed) {
             continue;
           }
+
           remainingPayments.push(
             payment
           );
+
           const required =
             parseUnits(
               payment.totalAmount,
               USDC_DECIMALS
             );
+
           if (
             balance >= required
           ) {
@@ -294,24 +350,30 @@ export default function PendingPayments() {
             "[PARTIO] Refresh payment error:",
             err
           );
+
           remainingPayments.push(
             payment
           );
+
           nextStatuses[
             payment.paymentId
           ] =
             "error";
         }
       }
+
       setPayments(
         remainingPayments
       );
+
       setBalances(
         nextBalances
       );
+
       setStatuses(
         nextStatuses
       );
+
       localStorage.setItem(
         key,
         JSON.stringify(
@@ -325,6 +387,7 @@ export default function PendingPayments() {
       );
     }
   }
+
   useEffect(() => {
     if (
       !address ||
@@ -332,11 +395,13 @@ export default function PendingPayments() {
     ) {
       return;
     }
+
     refreshPayments();
   }, [
     address,
     connectorClient,
   ]);
+
   async function findMaxUnifiedSpend(
     adapter: Awaited<
       ReturnType<typeof createArcAdapter>
@@ -349,6 +414,7 @@ export default function PendingPayments() {
     ) {
       return 0n;
     }
+
     for (
       let i =
         UNIFIED_RESERVES.length - 1;
@@ -357,25 +423,33 @@ export default function PendingPayments() {
     ) {
       const reserve =
         UNIFIED_RESERVES[i];
+
+      const candidateAmount =
+        maxAmountUnits -
+        reserve;
+
       if (
-        reserve >
-        maxAmountUnits
+        candidateAmount <= 0n
       ) {
         continue;
       }
+
       try {
         await kit.unifiedBalance.estimateSpend(
           {
             amount:
               formatUnits(
-                reserve,
+                candidateAmount,
                 USDC_DECIMALS
               ),
+
             token:
               "USDC",
+
             from: {
               adapter,
             },
+
             to: {
               adapter,
               chain:
@@ -385,7 +459,8 @@ export default function PendingPayments() {
             },
           }
         );
-        return reserve;
+
+        return candidateAmount;
       } catch (error) {
         const errorCode =
           typeof error === "object" &&
@@ -397,6 +472,7 @@ export default function PendingPayments() {
                 }
               ).code
             : undefined;
+
         const errorName =
           typeof error === "object" &&
           error !== null &&
@@ -407,6 +483,7 @@ export default function PendingPayments() {
                 }
               ).name
             : undefined;
+
         const expectedBalanceError =
           errorCode === 9001 ||
           errorCode === 9002 ||
@@ -420,13 +497,16 @@ export default function PendingPayments() {
             "BALANCE_INSUFFICIENT_ALLOWANCE" ||
           errorName ===
             "LIQUIDITY_INSUFFICIENT";
+
         if (!expectedBalanceError) {
           throw error;
         }
       }
     }
+
     return 0n;
   }
+
   async function handleContinueFunding(
     payment: PendingPayment
   ) {
@@ -436,10 +516,13 @@ export default function PendingPayments() {
     ) {
       return;
     }
+
     setError(null);
+
     setLoadingPayment(
       payment.paymentId
     );
+
     setStatuses(
       (current) => ({
         ...current,
@@ -447,13 +530,16 @@ export default function PendingPayments() {
           "checking",
       })
     );
+
     try {
       const walletClient =
         connectorClient.extend(
           publicActions
         );
+
       const vault =
         payment.vaultAddress as Address;
+
       const [
         currentVaultBalance,
         executed,
@@ -467,6 +553,7 @@ export default function PendingPayments() {
             functionName:
               "balance",
           }),
+
           walletClient.readContract({
             address:
               vault,
@@ -476,17 +563,21 @@ export default function PendingPayments() {
               "executed",
           }),
         ]);
+
       if (executed) {
         removePayment(
           payment.paymentId
         );
+
         return;
       }
+
       const totalAmount =
         parseUnits(
           payment.totalAmount,
           USDC_DECIMALS
         );
+
       if (
         currentVaultBalance >=
         totalAmount
@@ -498,6 +589,7 @@ export default function PendingPayments() {
               "funded",
           })
         );
+
         setBalances(
           (current) => ({
             ...current,
@@ -508,11 +600,14 @@ export default function PendingPayments() {
               ),
           })
         );
+
         return;
       }
+
       const remaining =
         totalAmount -
         currentVaultBalance;
+
       setStatuses(
         (current) => ({
           ...current,
@@ -520,21 +615,26 @@ export default function PendingPayments() {
             "funding",
         })
       );
+
       if (!connector) {
         throw new Error(
           "Unable to access the connected wallet."
         );
       }
+
       const provider =
         await connector.getProvider();
+
       const adapter =
         await createArcAdapter(
           provider as EIP1193Provider
         );
+
       const unifiedBalance =
         await getUnifiedBalances(
           adapter
         );
+
       const confirmedBalance =
         parseUnits(
           unifiedBalance
@@ -542,13 +642,16 @@ export default function PendingPayments() {
             "0",
           USDC_DECIMALS
         );
+
       const unifiedCandidate =
         confirmedBalance <
         remaining
           ? confirmedBalance
           : remaining;
+
       let unifiedAmount =
         0n;
+
       if (
         unifiedCandidate > 0n
       ) {
@@ -559,9 +662,11 @@ export default function PendingPayments() {
             vault
           );
       }
+
       const walletAmount =
         remaining -
         unifiedAmount;
+
       if (
         walletAmount > 0n
       ) {
@@ -579,6 +684,7 @@ export default function PendingPayments() {
               ],
             }
           );
+
         if (
           walletBalance <
           walletAmount
@@ -591,6 +697,7 @@ export default function PendingPayments() {
           );
         }
       }
+
       if (
         unifiedAmount > 0n
       ) {
@@ -603,6 +710,7 @@ export default function PendingPayments() {
           )
         );
       }
+
       if (
         walletAmount > 0n
       ) {
@@ -621,6 +729,7 @@ export default function PendingPayments() {
               ],
             }
           );
+
         const transferReceipt =
           await walletClient.waitForTransactionReceipt(
             {
@@ -628,6 +737,7 @@ export default function PendingPayments() {
                 transferHash,
             }
           );
+
         if (
           transferReceipt.status !==
           "success"
@@ -637,12 +747,14 @@ export default function PendingPayments() {
           );
         }
       }
+
       await refreshPayments();
     } catch (err) {
       console.error(
         "[PARTIO] Continue funding error:",
         err
       );
+
       setStatuses(
         (current) => ({
           ...current,
@@ -650,6 +762,7 @@ export default function PendingPayments() {
             "waiting",
         })
       );
+
       setError(
         err instanceof Error
           ? err.message
@@ -659,6 +772,7 @@ export default function PendingPayments() {
       setLoadingPayment(null);
     }
   }
+
   async function handleResume(
     payment: PendingPayment
   ) {
@@ -668,6 +782,7 @@ export default function PendingPayments() {
     ) {
       return;
     }
+
     if (
       inFlightPayments.current.has(
         payment.paymentId
@@ -675,13 +790,17 @@ export default function PendingPayments() {
     ) {
       return;
     }
+
     inFlightPayments.current.add(
       payment.paymentId
     );
+
     setError(null);
+
     setLoadingPayment(
       payment.paymentId
     );
+
     setStatuses(
       (current) => ({
         ...current,
@@ -689,13 +808,16 @@ export default function PendingPayments() {
           "checking",
       })
     );
+
     try {
       const walletClient =
         connectorClient.extend(
           publicActions
         );
+
       const vault =
         payment.vaultAddress as Address;
+
       const [
         balance,
         executed,
@@ -709,6 +831,7 @@ export default function PendingPayments() {
             functionName:
               "balance",
           }),
+
           walletClient.readContract({
             address:
               vault,
@@ -718,17 +841,21 @@ export default function PendingPayments() {
               "executed",
           }),
         ]);
+
       if (executed) {
         removePayment(
           payment.paymentId
         );
+
         return;
       }
+
       const totalAmount =
         parseUnits(
           payment.totalAmount,
           USDC_DECIMALS
         );
+
       if (
         balance < totalAmount
       ) {
@@ -739,16 +866,20 @@ export default function PendingPayments() {
               "waiting",
           })
         );
+
         setError(
           `Payment #${payment.paymentId} is not fully funded yet.`
         );
+
         return;
       }
+
       const recipientAddresses =
         payment.recipients.map(
           (recipient) =>
             recipient.address as Address
         );
+
       const amounts =
         payment.recipients.map(
           (recipient) =>
@@ -757,6 +888,7 @@ export default function PendingPayments() {
               USDC_DECIMALS
             )
         );
+
       const latestVaultBalance =
         await walletClient.readContract({
           address:
@@ -766,6 +898,7 @@ export default function PendingPayments() {
           functionName:
             "balance",
         });
+
       if (
         latestVaultBalance <
         totalAmount
@@ -777,11 +910,14 @@ export default function PendingPayments() {
               "waiting",
           })
         );
+
         setError(
           "Payment vault balance changed before execution. Please fund the remaining amount and try again."
         );
+
         return;
       }
+
       const executeHash =
         await writeContractAsync({
           address:
@@ -796,6 +932,7 @@ export default function PendingPayments() {
             totalAmount,
           ],
         });
+
       const executeReceipt =
         await walletClient.waitForTransactionReceipt(
           {
@@ -803,6 +940,7 @@ export default function PendingPayments() {
               executeHash,
           }
         );
+
       if (
         executeReceipt.status !==
         "success"
@@ -811,6 +949,7 @@ export default function PendingPayments() {
           "Payment transaction failed on-chain."
         );
       }
+
       setStatuses(
         (current) => ({
           ...current,
@@ -818,16 +957,21 @@ export default function PendingPayments() {
             "executed",
         })
       );
+
       setCompletedPayment({
         paymentId:
           payment.paymentId,
+
         totalAmount:
           payment.totalAmount,
+
         recipients:
           payment.recipients,
+
         txHash:
           executeHash,
       });
+
       removePayment(
         payment.paymentId
       );
@@ -836,6 +980,7 @@ export default function PendingPayments() {
         "[PARTIO] Resume payment error:",
         err
       );
+
       setStatuses(
         (current) => ({
           ...current,
@@ -843,6 +988,7 @@ export default function PendingPayments() {
             "funded",
         })
       );
+
       setError(
         err instanceof Error
           ? err.message
@@ -852,9 +998,11 @@ export default function PendingPayments() {
       inFlightPayments.current.delete(
         payment.paymentId
       );
+
       setLoadingPayment(null);
     }
   }
+
   async function handleRefund(
     payment: PendingPayment
   ) {
@@ -864,17 +1012,22 @@ export default function PendingPayments() {
     ) {
       return;
     }
+
     setError(null);
+
     setLoadingPayment(
       payment.paymentId
     );
+
     try {
       const walletClient =
         connectorClient.extend(
           publicActions
         );
+
       const vault =
         payment.vaultAddress as Address;
+
       const [
         balance,
         executed,
@@ -888,6 +1041,7 @@ export default function PendingPayments() {
             functionName:
               "balance",
           }),
+
           walletClient.readContract({
             address:
               vault,
@@ -897,12 +1051,15 @@ export default function PendingPayments() {
               "executed",
           }),
         ]);
+
       if (executed) {
         removePayment(
           payment.paymentId
         );
+
         return;
       }
+
       if (
         balance === 0n
       ) {
@@ -910,6 +1067,7 @@ export default function PendingPayments() {
           "There is no USDC available to refund."
         );
       }
+
       setStatuses(
         (current) => ({
           ...current,
@@ -917,6 +1075,7 @@ export default function PendingPayments() {
             "funding",
         })
       );
+
       const refundHash =
         await writeContractAsync({
           address:
@@ -927,21 +1086,35 @@ export default function PendingPayments() {
             "refund",
           args: [],
         });
-      await walletClient.waitForTransactionReceipt(
-        {
-          hash:
-            refundHash,
-        }
-      );
+
+      const refundReceipt =
+        await walletClient.waitForTransactionReceipt(
+          {
+            hash:
+              refundHash,
+          }
+        );
+
+      if (
+        refundReceipt.status !==
+        "success"
+      ) {
+        throw new Error(
+          "Refund transaction failed on-chain."
+        );
+      }
+
       removePayment(
         payment.paymentId
       );
+
       setError(null);
     } catch (err) {
       console.error(
         "[PARTIO] Refund error:",
         err
       );
+
       setStatuses(
         (current) => ({
           ...current,
@@ -949,6 +1122,7 @@ export default function PendingPayments() {
             "error",
         })
       );
+
       setError(
         err instanceof Error
           ? err.message
@@ -958,6 +1132,7 @@ export default function PendingPayments() {
       setLoadingPayment(null);
     }
   }
+
   if (
     !address ||
     payments.length === 0
@@ -971,11 +1146,13 @@ export default function PendingPayments() {
                 <div className="text-sm font-semibold text-emerald-400">
                   Payment completed
                 </div>
+
                 <div className="mt-1 text-xs text-neutral-400">
                   Payment #
                   {completedPayment.paymentId}
                 </div>
               </div>
+
               <a
                 href={`https://explorer.arc.io/tx/${completedPayment.txHash}`}
                 target="_blank"
@@ -985,9 +1162,11 @@ export default function PendingPayments() {
                 View transaction →
               </a>
             </div>
+
             <div className="mb-4 text-2xl font-semibold text-white">
               {completedPayment.totalAmount} USDC
             </div>
+
             <div className="space-y-2">
               {completedPayment.recipients.map(
                 (
@@ -1005,12 +1184,14 @@ export default function PendingPayments() {
                             recipient.address
                           )}
                       </div>
+
                       <div className="mt-1 text-xs text-neutral-500">
                         {shortenAddress(
                           recipient.address
                         )}
                       </div>
                     </div>
+
                     <div className="shrink-0 text-sm font-medium text-neutral-200">
                       {recipient.amount} USDC
                     </div>
@@ -1023,6 +1204,7 @@ export default function PendingPayments() {
       </>
     );
   }
+
   return (
     <section className="mt-6">
       <div className="mb-4 flex items-center justify-between gap-4">
@@ -1030,10 +1212,12 @@ export default function PendingPayments() {
           <h2 className="text-lg font-semibold text-white">
             Pending payments
           </h2>
+
           <p className="mt-1 text-sm text-neutral-500">
             Payments that still need to be completed.
           </p>
         </div>
+
         <button
           onClick={() =>
             refreshPayments()
@@ -1043,11 +1227,13 @@ export default function PendingPayments() {
           Refresh
         </button>
       </div>
+
       {error && (
         <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-300">
           {error}
         </div>
       )}
+
       <div className="space-y-4">
         {payments.map(
           (payment) => {
@@ -1056,14 +1242,17 @@ export default function PendingPayments() {
                 payment.paymentId
               ] ??
               "checking";
+
             const balance =
               balances[
                 payment.paymentId
               ] ??
               "0";
+
             const isLoading =
               loadingPayment ===
               payment.paymentId;
+
             return (
               <div
                 key={payment.paymentId}
@@ -1075,6 +1264,7 @@ export default function PendingPayments() {
                       Payment #
                       {payment.paymentId}
                     </div>
+
                     <div className="mt-1 text-xs text-neutral-500">
                       Vault{" "}
                       {shortenAddress(
@@ -1082,16 +1272,19 @@ export default function PendingPayments() {
                       )}
                     </div>
                   </div>
+
                   <div className="text-right">
                     <div className="text-lg font-semibold text-white">
                       {payment.totalAmount} USDC
                     </div>
+
                     <div className="mt-1 text-xs text-neutral-500">
                       Vault balance:{" "}
                       {balance} USDC
                     </div>
                   </div>
                 </div>
+
                 <div className="mb-5 space-y-2">
                   {payment.recipients.map(
                     (
@@ -1109,12 +1302,14 @@ export default function PendingPayments() {
                                 recipient.address
                               )}
                           </div>
+
                           <div className="mt-1 text-xs text-neutral-500">
                             {shortenAddress(
                               recipient.address
                             )}
                           </div>
                         </div>
+
                         <div className="shrink-0 text-sm font-medium text-neutral-200">
                           {recipient.amount} USDC
                         </div>
@@ -1122,36 +1317,42 @@ export default function PendingPayments() {
                     )
                   )}
                 </div>
+
                 {status ===
                   "waiting" && (
                   <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-xs text-amber-300">
                     This payment is waiting for more USDC.
                   </div>
                 )}
+
                 {status ===
                   "funded" && (
                   <div className="mb-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-xs text-emerald-300">
                     Payment is fully funded and ready to execute.
                   </div>
                 )}
+
                 {status ===
                   "funding" && (
                   <div className="mb-4 rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3 text-xs text-blue-300">
                     Funding payment...
                   </div>
                 )}
+
                 {status ===
                   "checking" && (
                   <div className="mb-4 rounded-xl border border-neutral-700 bg-neutral-950/50 px-4 py-3 text-xs text-neutral-400">
                     Checking payment status...
                   </div>
                 )}
+
                 {status ===
                   "error" && (
                   <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-xs text-red-300">
                     Something went wrong. Please try again.
                   </div>
                 )}
+
                 <div className="flex flex-wrap gap-3">
                   {status ===
                     "funded" && (
@@ -1169,6 +1370,7 @@ export default function PendingPayments() {
                         : "Resume Payment"}
                     </button>
                   )}
+
                   {status ===
                     "waiting" && (
                     <button
@@ -1185,6 +1387,7 @@ export default function PendingPayments() {
                         : "Continue Funding"}
                     </button>
                   )}
+
                   {(
                     status ===
                       "waiting" ||
@@ -1206,6 +1409,7 @@ export default function PendingPayments() {
                       Refund
                     </button>
                   )}
+
                   {status ===
                     "error" && (
                     <button
@@ -1224,6 +1428,7 @@ export default function PendingPayments() {
           }
         )}
       </div>
+
       {completedPayment && (
         <div className="mt-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
           <div className="mb-4 flex items-center justify-between gap-4">
@@ -1231,11 +1436,13 @@ export default function PendingPayments() {
               <div className="text-sm font-semibold text-emerald-400">
                 Payment completed
               </div>
+
               <div className="mt-1 text-xs text-neutral-400">
                 Payment #
                 {completedPayment.paymentId}
               </div>
             </div>
+
             <a
               href={`https://explorer.arc.io/tx/${completedPayment.txHash}`}
               target="_blank"
@@ -1245,9 +1452,11 @@ export default function PendingPayments() {
               View transaction →
             </a>
           </div>
+
           <div className="mb-4 text-2xl font-semibold text-white">
             {completedPayment.totalAmount} USDC
           </div>
+
           <div className="space-y-2">
             {completedPayment.recipients.map(
               (
@@ -1265,12 +1474,14 @@ export default function PendingPayments() {
                           recipient.address
                         )}
                     </div>
+
                     <div className="mt-1 text-xs text-neutral-500">
                       {shortenAddress(
                         recipient.address
                       )}
                     </div>
                   </div>
+
                   <div className="shrink-0 text-sm font-medium text-neutral-200">
                     {recipient.amount} USDC
                   </div>

@@ -9,6 +9,7 @@ import {
   publicActions,
   type Address,
   type TransactionReceipt,
+  type EIP1193Provider,
 } from "viem";
 
 import {
@@ -269,7 +270,10 @@ export function usePartition(
     data: connectorClient,
   } = useConnectorClient();
 
-  const { address } = useAccount();
+  const {
+    address,
+    connector,
+  } = useAccount();
 
   const {
     writeContractAsync,
@@ -393,7 +397,12 @@ export function usePartition(
         return false;
       }
 
-      throw error;
+      console.warn(
+        "[PARTIO] Unified Balance estimate failed. Falling back to wallet funding.",
+        error
+      );
+
+      return false;
     }
   }
 
@@ -705,9 +714,12 @@ export function usePartition(
         try {
           const decoded =
             decodeEventLog({
-              abi: PARTIO_ABI,
-              data: log.data,
-              topics: log.topics,
+              abi:
+                PARTIO_ABI,
+              data:
+                log.data,
+              topics:
+                log.topics,
             });
 
           if (
@@ -789,8 +801,19 @@ export function usePartition(
         "[PARTIO] createArcAdapter"
       );
 
+      if (!connector) {
+        throw new Error(
+          "Unable to access the connected wallet."
+        );
+      }
+
+      const provider =
+        await connector.getProvider();
+
       const adapter =
-        await createArcAdapter();
+        await createArcAdapter(
+          provider as EIP1193Provider
+        );
 
       console.timeEnd(
         "[PARTIO] createArcAdapter"
@@ -1021,6 +1044,15 @@ export function usePartition(
       setReceipt(
         txReceipt
       );
+
+      if (
+        txReceipt.status !==
+        "success"
+      ) {
+        throw new Error(
+          "Payment execution failed on-chain. Your funds remain in the payment vault."
+        );
+      }
 
       setIsConfirming(false);
       setIsConfirmed(true);

@@ -6,6 +6,6 @@ export async function getUnifiedBalances(adapter: any) {
       adapter,
     },
     networkType: "mainnet",
-    includePending: true,
+    includePending: false,
   });
 }

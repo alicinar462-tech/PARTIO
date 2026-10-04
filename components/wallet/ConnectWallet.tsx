@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import {
   formatUnits,
+  encodeFunctionData,
 } from "viem";
 
 import {
@@ -41,6 +42,29 @@ import SummaryCard from "../payment/SummaryCard";
 import ReviewModal from "../payment/ReviewModal";
 
 const GAS_BUFFER = 0.01;
+
+const USDC_ADDRESS =
+  "0x3600000000000000000000000000000000000000" as const;
+
+const USDC_ABI = [
+  {
+    type: "function",
+    name: "balanceOf",
+    stateMutability: "view",
+    inputs: [
+      {
+        name: "account",
+        type: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "balance",
+        type: "uint256",
+      },
+    ],
+  },
+] as const;
 
 const AGENT_DRAFT_KEY =
   "partio_agent_draft";
@@ -237,6 +261,7 @@ export default function ConnectWallet() {
       localStorage.removeItem(
         AGENT_ACTION_KEY
       );
+
     } catch (error) {
       console.error(
         "[PARTIO] Agent draft load error:",
@@ -250,9 +275,11 @@ export default function ConnectWallet() {
       localStorage.removeItem(
         AGENT_ACTION_KEY
       );
+
     } finally {
       setAgentDraftLoaded(true);
     }
+
   }, [
     mounted,
     agentDraftLoaded,
@@ -275,6 +302,7 @@ export default function ConnectWallet() {
 
     return () =>
       clearTimeout(timeout);
+
   }, [
     agentAction,
     recipients.length,
@@ -292,11 +320,21 @@ export default function ConnectWallet() {
     }
 
     try {
+      const data =
+        encodeFunctionData({
+          abi: USDC_ABI,
+          functionName: "balanceOf",
+          args: [address],
+        });
+
       const result =
         await window.ethereum.request({
-          method: "eth_getBalance",
+          method: "eth_call",
           params: [
-            address,
+            {
+              to: USDC_ADDRESS,
+              data,
+            },
             "latest",
           ],
         });
@@ -311,10 +349,11 @@ export default function ConnectWallet() {
         Number(
           formatUnits(
             balance,
-            18
+            6
           )
         )
       );
+
     } catch (error) {
       console.error(
         "[PARTIO] Wallet balance error:",
@@ -343,11 +382,13 @@ export default function ConnectWallet() {
             "0"
         )
       );
+
     } catch (error) {
       console.error(
         "Unified Balance Refresh Error",
         error
       );
+
     } finally {
       setBalanceRefreshing(false);
     }
@@ -378,6 +419,7 @@ export default function ConnectWallet() {
 
     return () =>
       clearInterval(interval);
+
   }, [
     mounted,
     isConnected,
@@ -411,6 +453,7 @@ export default function ConnectWallet() {
             ...args: unknown[]
           ) => void
         ) => void;
+
         removeListener?: (
           event: string,
           listener: (
@@ -440,6 +483,7 @@ export default function ConnectWallet() {
         handleChainChanged
       );
     };
+
   }, [
     mounted,
   ]);

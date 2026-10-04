@@ -19,34 +19,6 @@ export async function spendUSDC(
 
   await adapter.ensureChain(chain);
 
-  console.log(
-    "========== CIRCLE SPEND START =========="
-  );
-
-  console.log(
-    "[CIRCLE SPEND] Requested amount:",
-    amount
-  );
-
-  console.log(
-    "[CIRCLE SPEND] Token:",
-    "USDC"
-  );
-
-  console.log(
-    "[CIRCLE SPEND] Destination chain:",
-    "Arc"
-  );
-
-  console.log(
-    "[CIRCLE SPEND] Destination:",
-    recipientAddress
-  );
-
-  console.log(
-    "[CIRCLE SPEND] Calling unifiedBalance.spend()..."
-  );
-
   const result =
     await kit.unifiedBalance.spend({
       amount,
@@ -63,28 +35,38 @@ export async function spendUSDC(
       },
     });
 
-  console.log(
-    "[CIRCLE SPEND] spend() returned:"
-  );
+  if (!result) {
+    throw new Error(
+      "Unified Balance spend returned no result."
+    );
+  }
 
-  console.dir(
-    result,
-    {
-      depth: null,
-    }
-  );
+  if (
+    typeof result.txHash !== "string" ||
+    !result.txHash.startsWith("0x")
+  ) {
+    throw new Error(
+      "Unified Balance spend did not return a valid transaction hash."
+    );
+  }
 
-  console.log(
-    "[CIRCLE SPEND] Result keys:",
-    result &&
-      typeof result === "object"
-      ? Object.keys(result)
-      : []
-  );
+  if (
+    result.recipientAddress.toLowerCase() !==
+    recipientAddress.toLowerCase()
+  ) {
+    throw new Error(
+      "Unified Balance spend returned an unexpected recipient."
+    );
+  }
 
-  console.log(
-    "========== CIRCLE SPEND END =========="
-  );
+  if (
+    result.destinationChain !==
+    "Arc"
+  ) {
+    throw new Error(
+      "Unified Balance spend returned an unexpected destination chain."
+    );
+  }
 
   return result;
 }
