@@ -35,7 +35,9 @@ import SavedGroupsPanel from "../groups/SavedGroupsPanel";
 import WalletCard from "./WalletCard";
 
 import UnifiedBalanceCard from "@/src/unified/UnifiedBalanceCard";
+
 import { createArcAdapter } from "@/src/unified/adapters/viem";
+
 import { getUnifiedBalances } from "@/src/unified/gateway/balances";
 
 import SummaryCard from "../payment/SummaryCard";
@@ -261,7 +263,6 @@ export default function ConnectWallet() {
       localStorage.removeItem(
         AGENT_ACTION_KEY
       );
-
     } catch (error) {
       console.error(
         "[PARTIO] Agent draft load error:",
@@ -275,11 +276,9 @@ export default function ConnectWallet() {
       localStorage.removeItem(
         AGENT_ACTION_KEY
       );
-
     } finally {
       setAgentDraftLoaded(true);
     }
-
   }, [
     mounted,
     agentDraftLoaded,
@@ -302,7 +301,6 @@ export default function ConnectWallet() {
 
     return () =>
       clearTimeout(timeout);
-
   }, [
     agentAction,
     recipients.length,
@@ -342,6 +340,17 @@ export default function ConnectWallet() {
       const balanceHex =
         result as string;
 
+      if (
+        typeof balanceHex !==
+          "string" ||
+        balanceHex === "0x" ||
+        balanceHex === ""
+      ) {
+        setWalletBalance(0);
+
+        return;
+      }
+
       const balance =
         BigInt(balanceHex);
 
@@ -353,7 +362,6 @@ export default function ConnectWallet() {
           )
         )
       );
-
     } catch (error) {
       console.error(
         "[PARTIO] Wallet balance error:",
@@ -382,13 +390,11 @@ export default function ConnectWallet() {
             "0"
         )
       );
-
     } catch (error) {
       console.error(
         "Unified Balance Refresh Error",
         error
       );
-
     } finally {
       setBalanceRefreshing(false);
     }
@@ -419,7 +425,6 @@ export default function ConnectWallet() {
 
     return () =>
       clearInterval(interval);
-
   }, [
     mounted,
     isConnected,
@@ -483,7 +488,6 @@ export default function ConnectWallet() {
         handleChainChanged
       );
     };
-
   }, [
     mounted,
   ]);
