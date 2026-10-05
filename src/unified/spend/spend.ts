@@ -19,21 +19,79 @@ export async function spendUSDC(
 
   await adapter.ensureChain(chain);
 
-  const result =
-    await kit.unifiedBalance.spend({
-      amount,
-      token: "USDC",
+  const spendParams = {
+    amount,
+    token: "USDC" as const,
 
-      from: {
-        adapter,
-      },
+    from: {
+      adapter,
+    },
 
-      to: {
-        adapter,
-        chain: "Arc",
-        recipientAddress,
-      },
-    });
+    to: {
+      adapter,
+      chain: "Arc" as const,
+      recipientAddress,
+    },
+  };
+
+  let result;
+
+  try {
+    result =
+      await kit.unifiedBalance.spend(
+        spendParams
+      );
+  } catch (error) {
+    const cause =
+      error as {
+        cause?: {
+          trace?: {
+            attestation?: string;
+            signature?: string;
+          };
+        };
+      };
+
+    const trace =
+      cause?.cause?.trace;
+
+    const attestation =
+      trace?.attestation;
+
+    const signature =
+      trace?.signature;
+
+    if (
+      typeof attestation ===
+        "string" &&
+      typeof signature ===
+        "string" &&
+      attestation.length > 0 &&
+      signature.length > 0
+    ) {
+      console.log(
+        "[PARTIO] Mint failed. Retrying with Circle attestation..."
+      );
+
+      result =
+        await kit.unifiedBalance.spend({
+          ...spendParams,
+
+          config: {
+            retry: {
+              attestation,
+              signature,
+            },
+          },
+        });
+
+      console.log(
+        "[PARTIO] Circle mint retry completed."
+      );
+    } else {
+      throw error;
+    }
+  }
 
   if (!result) {
     throw new Error(
