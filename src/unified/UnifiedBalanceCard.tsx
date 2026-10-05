@@ -60,16 +60,12 @@ export default function UnifiedBalanceCard() {
     useState("1.00");
 
   const [depositChain, setDepositChain] =
-    useState<DepositChain>(
-      "Base"
-    );
+    useState<DepositChain>("Base");
 
   const [
     error,
     setError,
-  ] = useState<string | null>(
-    null
-  );
+  ] = useState<string | null>(null);
 
   const totalAvailable =
     (
@@ -106,13 +102,12 @@ export default function UnifiedBalanceCard() {
 
     const result =
       await ethereum.request({
-        method:
-          "eth_chainId",
+        method: "eth_chainId",
       });
 
     if (
       typeof result !==
-        "string"
+      "string"
     ) {
       return null;
     }
@@ -262,6 +257,11 @@ export default function UnifiedBalanceCard() {
               adapter
             )
         );
+
+      console.log(
+        "[PARTIO] Unified Balance Raw Result",
+        balance
+      );
 
       setConfirmed(
         balance.totalConfirmedBalance ??
