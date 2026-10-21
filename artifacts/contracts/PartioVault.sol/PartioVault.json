@@ -220,7 +220,7 @@
   "linkReferences": {},
   "deployedLinkReferences": {},
   "immutableReferences": {
-    "755": [
+    "1190": [
       {
         "length": 32,
         "start": 334
@@ -246,7 +246,7 @@
         "start": 2386
       }
     ],
-    "757": [
+    "1192": [
       {
         "length": 32,
         "start": 370
@@ -274,5 +274,5 @@
     ]
   },
   "inputSourceName": "project/contracts/PartioVault.sol",
-  "buildInfoId": "solc-0_8_28-d6ecf2328c8feede937452b29b2afdc34c55902d"
+  "buildInfoId": "solc-0_8_28-da0ad46554e451542d86a940fc95ead1969a16dc"
 }

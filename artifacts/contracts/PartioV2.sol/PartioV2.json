@@ -132,7 +132,7 @@
   "linkReferences": {},
   "deployedLinkReferences": {},
   "immutableReferences": {
-    "641": [
+    "1076": [
       {
         "length": 32,
         "start": 283
@@ -144,5 +144,5 @@
     ]
   },
   "inputSourceName": "project/contracts/PartioV2.sol",
-  "buildInfoId": "solc-0_8_28-d6ecf2328c8feede937452b29b2afdc34c55902d"
+  "buildInfoId": "solc-0_8_28-da0ad46554e451542d86a940fc95ead1969a16dc"
 }

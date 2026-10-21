@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -18,8 +19,6 @@ import {
   useWriteContract,
 } from "wagmi";
 
-import { AppKit } from "@circle-fin/app-kit";
-
 import {
   PARTIO_ABI,
   PARTIO_ADDRESS,
@@ -30,8 +29,7 @@ import { Recipient } from "@/types/recipient";
 import { createArcAdapter } from "@/src/unified/adapters/viem";
 import { getUnifiedBalances } from "@/src/unified/gateway/balances";
 import { spendUSDC } from "@/src/unified/spend/spend";
-
-const kit = new AppKit();
+import { findMaxUnifiedSpend as findMaxUnifiedSpendShared } from "@/src/unified/spend/findMaxUnifiedSpend";
 
 const USDC_ADDRESS =
   "0x3600000000000000000000000000000000000000" as const;
@@ -98,16 +96,6 @@ const PARTIO_VAULT_ABI = [
     ],
     outputs: [],
   },
-] as const;
-
-const UNIFIED_RESERVES = [
-  10_000n,
-  20_000n,
-  50_000n,
-  100_000n,
-  250_000n,
-  500_000n,
-  1_000_000n,
 ] as const;
 
 const PENDING_PAYMENTS_KEY =
@@ -339,206 +327,16 @@ export function usePartition(
     });
   }
 
-  async function canSpendUnifiedAmount(
-    adapter: any,
-    amountUnits: bigint,
-    destinationAddress: Address
-  ) {
-    if (amountUnits <= 0n) {
-      return false;
-    }
-
-    const amount = formatUnits(
-      amountUnits,
-      6
-    );
-
-    try {
-      await kit.unifiedBalance.estimateSpend({
-        amount,
-        token: "USDC",
-        from: {
-          adapter,
-        },
-        to: {
-          adapter,
-          chain: "Arc",
-          recipientAddress:
-            destinationAddress,
-        },
-      });
-
-      return true;
-    } catch (error) {
-      const unifiedError =
-        error as {
-          code?: unknown;
-          name?: unknown;
-        };
-
-      const code = unifiedError.code;
-
-      const name =
-        typeof unifiedError.name === "string"
-          ? unifiedError.name
-          : "";
-
-      const spendRejected =
-        code === 9001 ||
-        code === 9002 ||
-        code === 9003 ||
-        code === 6001 ||
-        name === "BALANCE_INSUFFICIENT_TOKEN" ||
-        name === "BALANCE_INSUFFICIENT_GAS" ||
-        name === "BALANCE_INSUFFICIENT_ALLOWANCE" ||
-        name === "LIQUIDITY_INSUFFICIENT";
-
-      if (spendRejected) {
-        return false;
-      }
-
-      console.warn(
-        "[PARTIO] Unified Balance estimate failed. Falling back to wallet funding.",
-        error
-      );
-
-      return false;
-    }
-  }
-
   async function findMaxUnifiedSpend(
     adapter: any,
     maxAmountUnits: bigint,
     destinationAddress: Address
-  ) {
-    if (maxAmountUnits <= 0n) {
-      return 0n;
-    }
-
-    console.time(
-      "[PARTIO] findMaxUnifiedSpend"
+  ): Promise<bigint> {
+    return findMaxUnifiedSpendShared(
+      adapter,
+      maxAmountUnits,
+      destinationAddress
     );
-
-    let estimateCount = 0;
-
-    estimateCount++;
-
-    const directCanSpend =
-      await canSpendUnifiedAmount(
-        adapter,
-        maxAmountUnits,
-        destinationAddress
-      );
-
-    console.log(
-      "[PARTIO] direct estimate:",
-      {
-        amount: formatUnits(
-          maxAmountUnits,
-          6
-        ),
-        canSpend:
-          directCanSpend,
-      }
-    );
-
-    if (directCanSpend) {
-      console.timeEnd(
-        "[PARTIO] findMaxUnifiedSpend"
-      );
-
-      return maxAmountUnits;
-    }
-
-    console.log(
-      "[PARTIO] Full Unified amount is not spendable. Starting reserve search..."
-    );
-
-    for (
-      const reserve of UNIFIED_RESERVES
-    ) {
-      if (
-        reserve >=
-        maxAmountUnits
-      ) {
-        continue;
-      }
-
-      const candidate =
-        maxAmountUnits -
-        reserve;
-
-      if (candidate <= 0n) {
-        continue;
-      }
-
-      estimateCount++;
-
-      const canSpend =
-        await canSpendUnifiedAmount(
-          adapter,
-          candidate,
-          destinationAddress
-        );
-
-      console.log(
-        `[PARTIO] estimate #${estimateCount}:`,
-        {
-          amount:
-            formatUnits(
-              candidate,
-              6
-            ),
-          reserve:
-            formatUnits(
-              reserve,
-              6
-            ),
-          canSpend,
-        }
-      );
-
-      if (canSpend) {
-        console.timeEnd(
-          "[PARTIO] findMaxUnifiedSpend"
-        );
-
-        return candidate;
-      }
-    }
-
-    const fallbackReserve =
-      2_000_000n;
-
-    if (
-      maxAmountUnits >
-      fallbackReserve
-    ) {
-      const fallbackAmount =
-        maxAmountUnits -
-        fallbackReserve;
-
-      const fallbackCanSpend =
-        await canSpendUnifiedAmount(
-          adapter,
-          fallbackAmount,
-          destinationAddress
-        );
-
-      if (fallbackCanSpend) {
-        console.timeEnd(
-          "[PARTIO] findMaxUnifiedSpend"
-        );
-
-        return fallbackAmount;
-      }
-    }
-
-    console.timeEnd(
-      "[PARTIO] findMaxUnifiedSpend"
-    );
-
-    return 0n;
   }
 
   async function partition() {
@@ -648,10 +446,8 @@ export function usePartition(
       );
 
       /*
-       * --------------------------------------------------
        * STEP 1
-       * Create a unique payment vault
-       * --------------------------------------------------
+       * Create a unique payment vault.
        */
 
       console.log(
@@ -689,6 +485,15 @@ export function usePartition(
         );
 
       setIsConfirming(false);
+
+      if (
+        createReceipt.status !==
+        "success"
+      ) {
+        throw new Error(
+          "Payment vault creation failed on-chain. No payment funding was started."
+        );
+      }
 
       /*
        * Get payment ID and vault address
@@ -760,7 +565,6 @@ export function usePartition(
 
       /*
        * Save recovery information immediately.
-       *
        * This is intentionally done before any
        * Unified Balance or wallet transfer.
        */
@@ -791,10 +595,8 @@ export function usePartition(
       );
 
       /*
-       * --------------------------------------------------
        * STEP 2
-       * Circle Unified Balance
-       * --------------------------------------------------
+       * Circle Unified Balance.
        */
 
       console.time(
@@ -818,12 +620,6 @@ export function usePartition(
       console.timeEnd(
         "[PARTIO] createArcAdapter"
       );
-
-      /*
-       * --------------------------------------------------
-       * Read Unified Balance
-       * --------------------------------------------------
-       */
 
       const unifiedBalance =
         await getUnifiedBalances(
@@ -889,10 +685,8 @@ export function usePartition(
       );
 
       /*
-       * --------------------------------------------------
        * STEP 3
-       * Check wallet balance if needed
-       * --------------------------------------------------
+       * Check wallet balance if needed.
        */
 
       if (
@@ -917,10 +711,8 @@ export function usePartition(
       }
 
       /*
-       * --------------------------------------------------
        * STEP 4
-       * Unified Balance → Vault
-       * --------------------------------------------------
+       * Unified Balance → Vault.
        */
 
       if (
@@ -949,10 +741,8 @@ export function usePartition(
       }
 
       /*
-       * --------------------------------------------------
        * STEP 5
-       * Wallet → Vault
-       * --------------------------------------------------
+       * Wallet → Vault.
        */
 
       if (
@@ -983,21 +773,29 @@ export function usePartition(
           walletTransferHash
         );
 
-        await walletClient.waitForTransactionReceipt(
-          {
-            hash:
-              walletTransferHash,
-          }
-        );
+        const walletTransferReceipt =
+          await walletClient.waitForTransactionReceipt(
+            {
+              hash:
+                walletTransferHash,
+            }
+          );
+
+        if (
+          walletTransferReceipt.status !==
+          "success"
+        ) {
+          throw new Error(
+            "USDC transfer to the payment vault failed on-chain. The payment was not executed. Check the pending payment recovery panel."
+          );
+        }
 
         setIsWriting(false);
       }
 
       /*
-       * --------------------------------------------------
        * STEP 6
-       * Vault → Recipients
-       * --------------------------------------------------
+       * Vault → Recipients.
        */
 
       console.log(

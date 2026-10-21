@@ -1,6 +1,5 @@
-import { AppKit } from "@circle-fin/app-kit";
 
-const kit = new AppKit();
+import { kit } from "@/src/unified/gateway/client";
 
 export async function estimateSpend(
   adapter: any,
@@ -10,14 +9,12 @@ export async function estimateSpend(
   return await kit.unifiedBalance.estimateSpend({
     amount,
     token: "USDC",
-
     from: {
       adapter,
     },
-
     to: {
       adapter,
-      chain: "Arc_Testnet",
+      chain: "Arc",
       recipientAddress,
     },
   });

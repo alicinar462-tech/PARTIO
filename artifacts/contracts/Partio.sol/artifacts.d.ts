@@ -15,7 +15,7 @@ export interface IERC20$Type {
   readonly deployedLinkReferences: {};
   readonly immutableReferences: {};
   readonly inputSourceName: "project/contracts/Partio.sol";
-  readonly buildInfoId: "solc-0_8_28-d104b3696a92b6ba786b84b31d77e9e94ae9aeb1";
+  readonly buildInfoId: "solc-0_8_28-da0ad46554e451542d86a940fc95ead1969a16dc";
 };
 
 export interface Partio$Type {
@@ -29,7 +29,7 @@ export interface Partio$Type {
   readonly deployedLinkReferences: {};
   readonly immutableReferences: {"867":[{"length":32,"start":637},{"length":32,"start":862},{"length":32,"start":1459}]};
   readonly inputSourceName: "project/contracts/Partio.sol";
-  readonly buildInfoId: "solc-0_8_28-d104b3696a92b6ba786b84b31d77e9e94ae9aeb1";
+  readonly buildInfoId: "solc-0_8_28-da0ad46554e451542d86a940fc95ead1969a16dc";
 };
 
 import "hardhat/types/artifacts";

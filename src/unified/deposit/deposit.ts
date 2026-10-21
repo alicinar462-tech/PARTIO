@@ -1,7 +1,6 @@
-import { AppKit } from "@circle-fin/app-kit";
-import { resolveChainIdentifier } from "@circle-fin/adapter-viem-v2";
 
-const kit = new AppKit();
+import { resolveChainIdentifier } from "@circle-fin/adapter-viem-v2";
+import { kit } from "@/src/unified/gateway/client";
 
 export async function depositUSDC(
   adapter: any,
